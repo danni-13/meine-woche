@@ -1,0 +1,1900 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Meine Woche">
+<meta name="theme-color" content="#1C1917">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Meine Woche · Personal Time Manager</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap');
+:root{
+  --bg:#F7F5F0;--surface:#fff;--ink:#1C1917;--muted:#78716C;--border:#E7E5E0;
+  --work:#5B7FA6;--work-l:#D6E4F5;
+  --fit:#6A9E72;--fit-l:#D4EDD8;
+  --home:#C47F3A;--home-l:#FDEBD0;
+  --me:#9B6BB5;--me-l:#EDE0F7;
+  --water:#3B9DD2;--water-l:#D0EAF8;
+  --cycle:#E8739A;--cycle-l:#FCE4EE;
+  --free:#D4CFC9;--free-l:#F4F2EF;
+  --radius:10px;--shadow:0 2px 12px rgba(0,0,0,.07);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;padding:0 0 80px}
+header{background:var(--ink);color:#fff;padding:20px 26px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+header h1{font-family:'DM Serif Display',serif;font-size:clamp(1.2rem,3vw,1.8rem);font-weight:400;line-height:1.2}
+header h1 span{color:#C4AF8A;font-style:italic}
+.week-nav{display:flex;align-items:center;gap:8px}
+.week-nav button{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:.9rem;display:flex;align-items:center;justify-content:center;transition:background .15s}
+.week-nav button:hover{background:rgba(255,255,255,.22)}
+.week-label{color:rgba(255,255,255,.7);font-size:.8rem;font-weight:500;min-width:115px;text-align:center}
+.water-bar{background:linear-gradient(135deg,#1565c0,#2196f3);color:#fff;padding:9px 26px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.wb-title{font-size:.8rem;font-weight:700;opacity:.9;white-space:nowrap}
+.water-glasses{display:flex;gap:4px;align-items:center}
+.glass-btn{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.28);border-radius:5px;width:26px;height:26px;cursor:pointer;font-size:.85rem;transition:all .15s;display:flex;align-items:center;justify-content:center;color:#fff}
+.glass-btn.filled{background:rgba(255,255,255,.48);border-color:rgba(255,255,255,.7)}
+.wb-info{font-size:.75rem;opacity:.8;margin-left:2px}
+.notif-btn{margin-left:auto;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.28);color:#fff;padding:5px 13px;border-radius:20px;font-size:.72rem;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;transition:background .15s}
+.notif-btn:hover{background:rgba(255,255,255,.25)}
+.notif-btn.on{background:rgba(255,255,255,.3);border-color:rgba(255,255,255,.6)}
+.tabs{display:flex;background:var(--surface);border-bottom:1px solid var(--border);padding:0 18px;gap:2px;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{padding:12px 14px;font-size:.8rem;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:color .15s,border-color .15s;background:none;border-top:none;border-left:none;border-right:none}
+.tab.active{color:var(--ink);border-bottom-color:var(--ink)}
+main{max-width:1100px;margin:0 auto;padding:22px 16px}
+.panel{display:none}.panel.active{display:block}
+.section-title{font-family:'DM Serif Display',serif;font-size:1.2rem;font-weight:400;margin-bottom:12px}
+.section-title small{display:block;font-family:'DM Sans',sans-serif;font-size:.76rem;color:var(--muted);font-weight:400;margin-top:2px}
+.card{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);box-shadow:var(--shadow);padding:16px 20px;margin-bottom:16px}
+.btn-primary{background:var(--ink);color:#fff;border:none;padding:10px 22px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.86rem;font-weight:600;cursor:pointer;transition:background .15s,transform .1s;display:inline-flex;align-items:center;gap:6px}
+.btn-primary:hover{background:#333}.btn-primary:active{transform:scale(.98)}
+.btn-secondary{background:var(--surface);color:var(--ink);border:1px solid var(--border);padding:9px 18px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.82rem;font-weight:600;cursor:pointer;transition:background .15s}
+.btn-secondary:hover{background:var(--bg)}
+.btn-row{display:flex;gap:9px;flex-wrap:wrap;margin-top:16px;align-items:center}
+
+/* OVERVIEW */
+.summary-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:9px;margin-bottom:18px}
+.summary-card{border-radius:var(--radius);padding:11px 13px;border-left:4px solid}
+.summary-card.work{border-color:var(--work);background:var(--work-l)}.summary-card.fit{border-color:var(--fit);background:var(--fit-l)}.summary-card.home{border-color:var(--home);background:var(--home-l)}.summary-card.me{border-color:var(--me);background:var(--me-l)}
+.sc-label{font-size:.68rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+.sc-hours{font-family:'DM Serif Display',serif;font-size:1.4rem;margin-top:1px}
+.legend{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:12px}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:.73rem;font-weight:500;color:var(--muted)}
+.legend-dot{width:10px;height:10px;border-radius:3px}
+.schedule-outer{overflow-x:auto;border-radius:var(--radius);border:1px solid var(--border);box-shadow:var(--shadow);background:var(--surface)}
+.schedule-grid{display:grid;min-width:660px}
+.sched-header-row{display:grid;grid-template-columns:48px repeat(7,1fr);background:var(--ink);color:#fff;border-radius:var(--radius) var(--radius) 0 0;overflow:hidden}
+.sched-day-head{padding:8px 3px;text-align:center;font-size:.7rem;font-weight:600;letter-spacing:.04em}
+.sched-day-head span{display:block;font-size:.62rem;color:rgba(255,255,255,.52);font-weight:400;margin-top:1px}
+.sched-day-head.today{background:rgba(255,255,255,.12)}
+.sched-body{display:grid;grid-template-columns:48px repeat(7,1fr)}
+.sched-time-col{display:flex;flex-direction:column;border-right:1px solid var(--border)}
+.sched-time-label{height:32px;display:flex;align-items:center;justify-content:flex-end;padding-right:6px;font-size:.6rem;color:var(--muted);border-bottom:1px solid var(--border)}
+.sched-day-col{display:flex;flex-direction:column;border-right:1px solid var(--border);position:relative;cursor:pointer}
+.sched-day-col:last-child{border-right:none}
+.sched-slot{height:32px;border-bottom:1px solid var(--border)}
+.sched-event{position:absolute;left:2px;right:2px;border-radius:4px;padding:2px 4px;font-size:.6rem;font-weight:600;overflow:hidden;z-index:2;cursor:pointer;line-height:1.25;transition:opacity .1s}
+.sched-event:hover{opacity:.82}
+.sched-event.work{background:var(--work);color:#fff}.sched-event.fit{background:var(--fit);color:#fff}.sched-event.home{background:var(--home);color:#fff}.sched-event.me{background:var(--me);color:#fff}.sched-event.free{background:var(--free);color:var(--muted);border:1px dashed var(--border)}
+.notes-area{width:100%;min-height:65px;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.86rem;resize:vertical;background:var(--bg);color:var(--ink);outline:none;margin-top:7px}
+.notes-area:focus{border-color:var(--ink)}
+
+/* PROGRESS BANNER */
+.prog-banner{background:linear-gradient(135deg,var(--fit),#4a8a52);color:#fff;border-radius:var(--radius);padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.prog-banner .pb-week{font-family:'DM Serif Display',serif;font-size:1.5rem;min-width:28px}
+.prog-banner .pb-info{flex:1}
+.prog-banner .pb-title{font-size:.88rem;font-weight:700}
+.prog-banner .pb-sub{font-size:.75rem;opacity:.85;margin-top:1px}
+.prog-dots{display:flex;gap:4px;align-items:center}
+.prog-dot{width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.3);transition:all .2s}
+.prog-dot.active{background:#fff;transform:scale(1.2)}
+.prog-dot.done{background:rgba(255,255,255,.7)}
+
+/* FITNESS LIBRARY */
+.workout-tabs{display:flex;gap:5px;margin-bottom:14px;flex-wrap:wrap}
+.workout-tab{padding:6px 12px;border-radius:18px;border:1.5px solid var(--border);background:none;font-family:inherit;font-size:.76rem;font-weight:600;cursor:pointer;color:var(--muted);transition:all .15s}
+.workout-tab.active{background:var(--fit);border-color:var(--fit);color:#fff}
+
+/* EXERCISE CARDS - Human illustrations */
+.workout-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:11px}
+.exercise-card{border:1.5px solid var(--border);border-radius:10px;overflow:hidden;background:var(--surface);cursor:pointer;transition:border-color .15s,box-shadow .15s;position:relative}
+.exercise-card:hover{border-color:var(--fit);box-shadow:0 4px 14px rgba(106,158,114,.18)}
+.exercise-card.selected{border-color:var(--fit);background:var(--fit-l)}
+.ex-img{width:100%;height:130px;overflow:hidden;background:#f0f0f0;display:flex;align-items:center;justify-content:center}
+.ex-img svg{width:100%;height:130px}
+.ex-body{padding:9px 11px}
+.ex-name{font-size:.8rem;font-weight:700;margin-bottom:2px}
+.ex-meta{font-size:.68rem;color:var(--muted)}
+.ex-badge{display:inline-block;font-size:.6rem;padding:2px 6px;border-radius:8px;margin-top:4px;font-weight:600;margin-right:3px}
+.ex-badge.body{background:#e8f5e9;color:#2e7d32}.ex-badge.band{background:#fff3e0;color:#e65100}.ex-badge.dumbbell{background:#e3f2fd;color:#1565c0}.ex-badge.foam{background:#f3e5f5;color:#7b1fa2}.ex-badge.bike{background:#e0f2f1;color:#00695c}
+.ex-badge.mod{background:#fce4ec;color:#c62828;font-size:.57rem}
+.selected-check{position:absolute;top:6px;right:6px;background:var(--fit);color:#fff;border-radius:50%;width:20px;height:20px;font-size:.75rem;display:none;align-items:center;justify-content:center;font-weight:700}
+.exercise-card.selected .selected-check{display:flex}
+.plan-exercise-chip{background:var(--fit-l);border:1px solid var(--fit);border-radius:6px;padding:4px 9px;font-size:.73rem;font-weight:600;color:#2d6a35;display:inline-flex;align-items:center;gap:5px}
+.plan-exercise-chip button{background:none;border:none;cursor:pointer;color:#2d6a35;font-size:.8rem;line-height:1;padding:0}
+
+/* WORK TAB */
+.days-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(135px,1fr));gap:12px}
+.day-block .day-name{font-size:.88rem;font-weight:600;margin-bottom:7px}
+.time-row{display:flex;gap:4px;align-items:center;margin-bottom:4px}
+.time-row input[type=time]{flex:1;padding:5px 6px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:.78rem;color:var(--ink);background:var(--bg);outline:none}
+.time-row input[type=time]:focus{border-color:var(--work)}
+.time-sep{font-size:.68rem;color:var(--muted)}
+.day-off-toggle{display:flex;align-items:center;gap:5px;font-size:.74rem;color:var(--muted);cursor:pointer;user-select:none;margin-top:4px}
+.day-off-toggle input{accent-color:var(--work)}
+.add-shift-btn{font-size:.7rem;color:var(--work);background:none;border:none;cursor:pointer;padding:1px 0;font-family:inherit;font-weight:600}
+.remove-shift-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:.9rem;line-height:1;padding:2px}
+.remove-shift-btn:hover{color:#e55}
+
+/* PREFS */
+.prefs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(225px,1fr));gap:13px}
+.pref-card{border-radius:var(--radius);padding:14px 16px;border:1.5px solid var(--border)}
+.pref-card.fitness{border-color:var(--fit);background:var(--fit-l)}.pref-card.home{border-color:var(--home);background:var(--home-l)}.pref-card.me{border-color:var(--me);background:var(--me-l)}
+.pref-card h3{font-size:.83rem;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.pref-row{display:flex;flex-direction:column;gap:3px;margin-bottom:8px}
+.pref-row label{font-size:.73rem;color:var(--muted);font-weight:500}
+.pref-row select,.pref-row input[type=number],.pref-row input[type=time],.pref-row input[type=date]{padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:.78rem;background:#fff;color:var(--ink);outline:none}
+.pref-row select:focus,.pref-row input:focus{border-color:var(--ink)}
+.progress-preview{background:rgba(106,158,114,.12);border:1px solid var(--fit);border-radius:7px;padding:9px 12px;font-size:.75rem;color:#2d6a35;margin-top:10px;line-height:1.7}
+
+/* PERSONAL DATA TAB */
+.personal-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+.personal-section{border-radius:var(--radius);padding:16px 18px;border:1.5px solid var(--border);background:var(--surface)}
+.personal-section h3{font-size:.88rem;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:7px}
+.input-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.input-field{display:flex;flex-direction:column;gap:3px}
+.input-field label{font-size:.72rem;color:var(--muted);font-weight:500}
+.input-field input,.input-field select{padding:7px 9px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:.82rem;background:var(--bg);color:var(--ink);outline:none;width:100%}
+.input-field input:focus,.input-field select:focus{border-color:var(--ink);background:#fff}
+.input-full{grid-column:1/-1}
+.bmi-display{background:var(--bg);border-radius:8px;padding:12px 14px;margin-top:10px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.bmi-number{font-family:'DM Serif Display',serif;font-size:2rem;line-height:1}
+.bmi-label{font-size:.75rem;color:var(--muted);margin-top:2px}
+.bmi-bar{flex:1;min-width:120px}
+.bmi-scale{height:8px;border-radius:4px;background:linear-gradient(90deg,#64b5f6,#81c784,#ffb74d,#e57373);position:relative;margin-bottom:4px}
+.bmi-indicator{position:absolute;top:-4px;width:16px;height:16px;background:#fff;border:2px solid var(--ink);border-radius:50%;transform:translateX(-50%);transition:left .4s}
+.bmi-labels{display:flex;justify-content:space-between;font-size:.6rem;color:var(--muted)}
+
+/* CYCLE TRACKER */
+.cycle-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.cycle-section{border-radius:var(--radius);padding:14px 16px;border:1.5px solid var(--cycle);background:var(--cycle-l)}
+.cycle-section h3{font-size:.85rem;font-weight:700;margin-bottom:10px;color:#ad1457;display:flex;align-items:center;gap:6px}
+.cycle-calendar{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-top:8px}
+.cycle-day{width:100%;aspect-ratio:1;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.7rem;cursor:pointer;border:1px solid transparent;transition:all .15s;background:rgba(255,255,255,.5);font-weight:500}
+.cycle-day:hover{border-color:var(--cycle)}
+.cycle-day.period{background:var(--cycle);color:#fff;border-color:var(--cycle)}
+.cycle-day.fertile{background:#f8bbd0;border-color:#f48fb1}
+.cycle-day.ovulation{background:#ad1457;color:#fff;border-color:#880e4f}
+.cycle-day.today-c{border:2px solid var(--ink)}
+.cycle-legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.cycle-legend-item{display:flex;align-items:center;gap:4px;font-size:.7rem;color:#ad1457}
+.cycle-dot{width:10px;height:10px;border-radius:50%}
+.phase-info{background:rgba(255,255,255,.6);border-radius:7px;padding:10px 12px;margin-top:10px}
+.phase-title{font-size:.78rem;font-weight:700;color:#ad1457;margin-bottom:4px}
+.phase-text{font-size:.72rem;color:#880e4f;line-height:1.5}
+.measurements-log{margin-top:10px}
+.log-entry{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:.78rem}
+.log-entry:last-child{border-bottom:none}
+.log-date{color:var(--muted);font-size:.7rem}
+.add-measurement-btn{width:100%;padding:8px;border:1.5px dashed var(--border);border-radius:7px;background:none;color:var(--muted);font-family:inherit;font-size:.8rem;cursor:pointer;margin-top:8px;transition:all .15s}
+.add-measurement-btn:hover{border-color:var(--ink);color:var(--ink)}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:100;padding:14px}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface);border-radius:13px;padding:22px;max-width:460px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.modal h2{font-family:'DM Serif Display',serif;font-size:1.15rem;font-weight:400;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center}
+.modal-close{background:var(--bg);border:1px solid var(--border);width:28px;height:28px;border-radius:50%;font-size:.95rem;cursor:pointer;color:var(--muted);display:flex;align-items:center;justify-content:center}
+.event-list{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+.event-item{display:flex;align-items:center;gap:7px;background:var(--bg);border-radius:7px;padding:8px 10px;border:1px solid var(--border);flex-wrap:wrap}
+.event-item select,.event-item input[type=time]{padding:5px 6px;border:1px solid var(--border);border-radius:5px;font-family:inherit;font-size:.76rem;background:#fff;color:var(--ink);outline:none}
+.event-item select{width:110px}
+.event-type-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.add-event-btn{width:100%;padding:8px;border:1.5px dashed var(--border);border-radius:7px;background:none;color:var(--muted);font-family:inherit;font-size:.8rem;cursor:pointer;transition:all .15s}
+.add-event-btn:hover{border-color:var(--ink);color:var(--ink)}
+
+/* FIT MODAL */
+.fit-modal{max-width:620px}
+.fit-ex-item{display:flex;gap:12px;background:var(--bg);border-radius:9px;padding:11px;border:1px solid var(--border);margin-bottom:9px;align-items:flex-start}
+.fit-ex-thumb{width:70px;height:70px;border-radius:7px;overflow:hidden;flex-shrink:0;background:#eee}
+.fit-ex-thumb svg{width:70px;height:70px}
+.fit-ex-info .ex-name{font-size:.84rem;font-weight:700;margin-bottom:2px}
+.fit-ex-info .ex-meta{font-size:.72rem;color:var(--muted);margin-bottom:4px}
+.fit-ex-info .ex-tip{font-size:.72rem;color:#444;font-style:italic}
+
+/* WATER POPUP */
+.water-popup{position:fixed;top:18px;right:18px;background:linear-gradient(135deg,#1565c0,#1976d2);color:#fff;border-radius:13px;padding:14px 18px;box-shadow:0 8px 30px rgba(0,0,0,.25);z-index:400;max-width:270px;transform:translateX(120%);transition:transform .4s cubic-bezier(.34,1.56,.64,1);display:flex;flex-direction:column;gap:7px}
+.water-popup.show{transform:translateX(0)}
+.water-popup .wp-title{font-weight:700;font-size:.92rem;display:flex;align-items:center;gap:6px}
+.water-popup .wp-sub{font-size:.75rem;opacity:.88}
+.water-popup .wp-btn{background:rgba(255,255,255,.25);border:1px solid rgba(255,255,255,.4);color:#fff;padding:6px 14px;border-radius:7px;font-family:inherit;font-size:.78rem;font-weight:600;cursor:pointer;align-self:flex-start;margin-top:1px}
+.water-popup .wp-close{position:absolute;top:9px;right:11px;background:none;border:none;color:rgba(255,255,255,.7);cursor:pointer;font-size:1rem}
+
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:10px 18px;border-radius:50px;font-size:.8rem;font-weight:500;opacity:0;pointer-events:none;transition:all .3s;z-index:300;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+@media(max-width:600px){
+  .days-grid{grid-template-columns:repeat(2,1fr)}
+  .workout-grid{grid-template-columns:repeat(2,1fr)}
+  .personal-grid,.cycle-grid{grid-template-columns:1fr}
+  .input-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Meine Woche<br><span>Personal Time Manager</span></h1>
+  <div class="week-nav">
+    <button id="prevWeek">&#8592;</button>
+    <div class="week-label" id="weekLabel"></div>
+    <button id="nextWeek">&#8594;</button>
+  </div>
+</header>
+
+<div class="water-bar">
+  <span class="wb-title">💧 Wasser heute</span>
+  <div class="water-glasses" id="waterGlasses"></div>
+  <span class="wb-info" id="waterInfo"></span>
+  <button class="notif-btn" id="notifBtn">🔔 Erinnerung aktivieren</button>
+</div>
+
+<div class="tabs">
+  <button class="tab active" data-tab="overview">📅 Wochenplan</button>
+  <button class="tab" data-tab="fitness">🏋️ Übungen</button>
+  <button class="tab" data-tab="personal">👤 Mein Körper</button>
+  <button class="tab" data-tab="work">💼 Arbeitszeiten</button>
+  <button class="tab" data-tab="prefs">⚙️ Einstellungen</button>
+</div>
+
+<main>
+<!-- OVERVIEW -->
+<div class="panel active" id="tab-overview">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:14px">
+    <div class="section-title">Dein Wochenplan<small>Klick auf einen Tag zum Bearbeiten · Fitness-Block für Übungsdetails</small></div>
+    <button class="btn-primary" id="generateBtn">✨ Plan generieren</button>
+  </div>
+  <div id="progBanner" class="prog-banner" style="display:none">
+    <div class="pb-week" id="pbWeek"></div>
+    <div class="pb-info"><div class="pb-title" id="pbTitle"></div><div class="pb-sub" id="pbSub"></div></div>
+    <div class="prog-dots" id="progDots"></div>
+  </div>
+  <div class="summary-row" id="summaryRow"></div>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:var(--work)"></div>Arbeit</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--fit)"></div>Fitness</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--home)"></div>Hausarbeit</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--me)"></div>Me Time</div>
+  </div>
+  <div class="schedule-outer">
+    <div class="schedule-grid">
+      <div class="sched-header-row" id="schedHeader"></div>
+      <div class="sched-body" id="schedBody"></div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:16px">
+    <div style="font-weight:600;font-size:.83rem;margin-bottom:3px">📝 Notizen zur Woche</div>
+    <textarea class="notes-area" id="weekNotes" placeholder="Besondere Termine, Erinnerungen…"></textarea>
+  </div>
+</div>
+
+<!-- FITNESS -->
+<div class="panel" id="tab-fitness">
+  <div class="section-title">Übungsbibliothek<small>Angepasst: kein Nacken, kein tiefes Kniebeugen · Klick zum Auswählen</small></div>
+  <div class="card" style="padding:12px 16px;background:var(--fit-l);border-color:var(--fit);margin-bottom:12px">
+    <div style="font-size:.78rem;color:#2d6a35;font-weight:600">✅ Deine Einschränkungen werden berücksichtigt</div>
+    <div style="font-size:.75rem;color:#2d6a35;margin-top:3px">Alle Übungen ohne Nackenbelastung. 🔴 = Anpassungshinweis vorhanden.</div>
+  </div>
+  <div class="workout-tabs" id="fitCatTabs">
+    <button class="workout-tab active" data-cat="all">Alle</button>
+    <button class="workout-tab" data-cat="body">💪 Körpergewicht</button>
+    <button class="workout-tab" data-cat="band">🟡 Fitness-Band</button>
+    <button class="workout-tab" data-cat="dumbbell">🏋️ Hantel</button>
+    <button class="workout-tab" data-cat="foam">🔵 Faszienrolle</button>
+    <button class="workout-tab" data-cat="bike">🚲 Standfahrrad</button>
+  </div>
+  <div class="workout-grid" id="workoutGrid"></div>
+  <div class="card" style="margin-top:16px">
+    <div style="font-weight:600;font-size:.85rem;margin-bottom:7px">📋 Mein heutiges Workout</div>
+    <div id="myWorkoutPlan" style="display:flex;gap:6px;flex-wrap:wrap;min-height:32px"></div>
+    <div class="btn-row">
+      <button class="btn-primary" id="saveWorkoutBtn">💾 Speichern</button>
+      <button class="btn-secondary" id="clearWorkoutBtn">Leeren</button>
+    </div>
+  </div>
+</div>
+
+<!-- PERSONAL DATA -->
+<div class="panel" id="tab-personal">
+  <div class="section-title">Mein Körper<small>Deine persönlichen Daten — alles bleibt lokal auf deinem Gerät</small></div>
+
+  <div class="personal-grid">
+    <!-- Basic measurements -->
+    <div class="personal-section">
+      <h3>📏 Körperdaten</h3>
+      <div class="input-grid">
+        <div class="input-field"><label>Größe (cm)</label><input type="number" id="pd_height" min="140" max="210" placeholder="z.B. 168"></div>
+        <div class="input-field"><label>Gewicht (kg)</label><input type="number" id="pd_weight" min="40" max="200" step="0.1" placeholder="z.B. 70.5"></div>
+        <div class="input-field"><label>Geburtsjahr</label><input type="number" id="pd_year" min="1960" max="2005" placeholder="z.B. 1988"></div>
+        <div class="input-field"><label>Zielgewicht (kg)</label><input type="number" id="pd_goalweight" min="40" max="200" step="0.1" placeholder="z.B. 63"></div>
+      </div>
+      <div class="bmi-display" id="bmiDisplay" style="display:none">
+        <div><div class="bmi-number" id="bmiNum"></div><div class="bmi-label" id="bmiLabel"></div></div>
+        <div class="bmi-bar"><div class="bmi-scale"><div class="bmi-indicator" id="bmiIndicator"></div></div><div class="bmi-labels"><span>Unter</span><span>Normal</span><span>Über</span><span>Adipös</span></div></div>
+      </div>
+    </div>
+
+    <!-- Body measurements -->
+    <div class="personal-section">
+      <h3>📐 Körpermaße</h3>
+      <div class="input-grid">
+        <div class="input-field"><label>Brust (cm)</label><input type="number" id="pd_chest" min="60" max="150" placeholder="z.B. 95"></div>
+        <div class="input-field"><label>Taille (cm)</label><input type="number" id="pd_waist" min="50" max="150" placeholder="z.B. 80"></div>
+        <div class="input-field"><label>Hüfte (cm)</label><input type="number" id="pd_hip" min="60" max="160" placeholder="z.B. 100"></div>
+        <div class="input-field"><label>Oberschenkel (cm)</label><input type="number" id="pd_thigh" min="30" max="100" placeholder="z.B. 58"></div>
+        <div class="input-field"><label>Oberarm (cm)</label><input type="number" id="pd_arm" min="20" max="60" placeholder="z.B. 32"></div>
+        <div class="input-field"><label>Datum</label><input type="date" id="pd_measdate"></div>
+      </div>
+      <button class="add-measurement-btn" id="saveMeasBtn">📊 Messung speichern</button>
+      <div class="measurements-log" id="measLog"></div>
+    </div>
+
+    <!-- Goals & notes -->
+    <div class="personal-section">
+      <h3>🎯 Ziele & Notizen</h3>
+      <div class="input-grid">
+        <div class="input-field input-full"><label>Mein Hauptziel</label>
+          <select id="pd_goal">
+            <option value="">Bitte wählen…</option>
+            <option value="abnehmen">Abnehmen & Fett verbrennen</option>
+            <option value="straffen">Straffen & Definieren</option>
+            <option value="kraft">Kraft aufbauen</option>
+            <option value="ausdauer">Ausdauer verbessern</option>
+            <option value="gesundheit">Allgemeine Gesundheit</option>
+            <option value="wohlbefinden">Wohlbefinden & Stressabbau</option>
+          </select>
+        </div>
+        <div class="input-field input-full"><label>Persönliche Notizen (Einschränkungen, Vorlieben…)</label>
+          <textarea class="notes-area" id="pd_notes" style="min-height:80px" placeholder="z.B. kein Nacken, kein tiefes Kniebeugen, morgens bin ich fit…"></textarea>
+        </div>
+      </div>
+      <div class="btn-row" style="margin-top:10px">
+        <button class="btn-primary" id="savePersonalBtn">💾 Speichern</button>
+      </div>
+    </div>
+
+    <!-- Progress tracking -->
+    <div class="personal-section">
+      <h3>📈 Gewichtsverlauf</h3>
+      <div id="weightChart" style="min-height:120px;display:flex;align-items:flex-end;gap:3px;padding:10px 0;border-bottom:1px solid var(--border)"></div>
+      <div class="input-grid" style="margin-top:10px">
+        <div class="input-field"><label>Gewicht eintragen (kg)</label><input type="number" id="wlog_weight" step="0.1" placeholder="z.B. 70.2"></div>
+        <div class="input-field"><label>Datum</label><input type="date" id="wlog_date"></div>
+      </div>
+      <button class="btn-primary" id="addWeightBtn" style="margin-top:8px;font-size:.8rem;padding:8px 16px">+ Eintragen</button>
+    </div>
+  </div>
+
+  <!-- CYCLE TRACKER -->
+  <div style="margin-top:18px">
+    <div class="section-title" style="margin-bottom:12px">🌸 Zyklustracker<small>Optional — hilft dir Training und Energie besser einzuplanen</small></div>
+    <div class="cycle-grid">
+      <div class="cycle-section">
+        <h3>🌸 Zykluseinstellungen</h3>
+        <div class="input-grid">
+          <div class="input-field"><label>Letzter 1. Tag</label><input type="date" id="cycle_start"></div>
+          <div class="input-field"><label>Zykluslänge (Tage)</label><input type="number" id="cycle_len" min="21" max="35" value="28"></div>
+          <div class="input-field"><label>Periodendauer (Tage)</label><input type="number" id="cycle_period" min="2" max="8" value="5"></div>
+          <div class="input-field"><label>Eisprung (Tag)</label><input type="number" id="cycle_ov" min="10" max="20" value="14"></div>
+        </div>
+        <div class="btn-row" style="margin-top:8px">
+          <button class="btn-primary" id="saveCycleBtn" style="font-size:.8rem;padding:8px 16px">💾 Speichern</button>
+        </div>
+        <div class="cycle-legend" style="margin-top:10px">
+          <div class="cycle-legend-item"><div class="cycle-dot" style="background:var(--cycle)"></div>Periode</div>
+          <div class="cycle-legend-item"><div class="cycle-dot" style="background:#f8bbd0"></div>Fruchtbar</div>
+          <div class="cycle-legend-item"><div class="cycle-dot" style="background:#ad1457"></div>Eisprung</div>
+        </div>
+      </div>
+      <div class="cycle-section">
+        <h3>📅 Dieser Monat</h3>
+        <div class="cycle-calendar" id="cycleCalendar"></div>
+      </div>
+      <div class="cycle-section">
+        <h3>💡 Aktuelle Phase</h3>
+        <div class="phase-info" id="phaseInfo">
+          <div class="phase-title">Kein Zyklus eingetragen</div>
+          <div class="phase-text">Trage links dein Datum ein um Empfehlungen zu sehen.</div>
+        </div>
+        <div style="margin-top:12px">
+          <div style="font-size:.75rem;font-weight:700;color:#ad1457;margin-bottom:6px">🏋️ Trainingsempfehlung</div>
+          <div id="cycleTrainingTip" style="font-size:.73rem;color:#880e4f;line-height:1.6;background:rgba(255,255,255,.5);border-radius:6px;padding:8px 10px">Folgt nach Eingabe des Zyklus.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- WORK TAB -->
+<div class="panel" id="tab-work">
+  <div class="section-title">Arbeitszeiten eintragen<small>Trage deine Schichten für diese Woche ein — Workout wird an Arbeitstagen ausgelassen</small></div>
+  <div class="card">
+    <div class="days-grid" id="workGrid"></div>
+    <div class="btn-row">
+      <button class="btn-primary" id="saveWorkBtn">💾 Speichern</button>
+      <button class="btn-secondary" id="clearWorkBtn">Alles leeren</button>
+    </div>
+  </div>
+</div>
+
+<!-- PREFS -->
+<div class="panel" id="tab-prefs">
+  <div class="section-title">Einstellungen<small>Einmal ausfüllen — gilt für alle Wochen</small></div>
+  <div class="prefs-grid">
+    <div class="pref-card fitness">
+      <h3>🏋️ Fitness</h3>
+      <div class="pref-row"><label>Startdauer (Min, Woche 1)</label><input type="number" min="5" max="30" id="fitBaseDuration" value="10"></div>
+      <div class="pref-row"><label>Steigerung pro Woche (Min)</label><input type="number" min="5" max="20" id="fitStepMin" value="10"></div>
+      <div class="pref-row"><label>Trainingsstart-Datum</label><input type="date" id="fitStartDate"></div>
+      <div class="pref-row"><label>Bevorzugte Tageszeit</label>
+        <select id="fitTime"><option value="morning">Morgens (6–9)</option><option value="midday">Mittags (11–14)</option><option value="afternoon" selected>Nachmittags (15–17)</option><option value="evening">Abends (18–20)</option></select>
+      </div>
+      <div class="progress-preview" id="progressPreview">← Startdatum eintragen</div>
+    </div>
+    <div class="pref-card home">
+      <h3>🏠 Hausarbeit</h3>
+      <div class="pref-row"><label>Stunden pro Woche</label><input type="number" min="1" max="20" id="homeHours" value="6"></div>
+      <div class="pref-row"><label>Max. Blöcke pro Tag</label><input type="number" min="1" max="3" id="homeMaxBlocks" value="1"></div>
+      <div class="pref-row"><label>Bevorzugte Tageszeit</label>
+        <select id="homeTime"><option value="morning" selected>Morgens (7–10)</option><option value="midday">Mittags (11–13)</option><option value="afternoon">Nachmittags (14–17)</option><option value="evening">Abends (18–20)</option></select>
+      </div>
+    </div>
+    <div class="pref-card me">
+      <h3>✨ Me Time</h3>
+      <div class="pref-row"><label>Stunden pro Woche</label><input type="number" min="1" max="20" id="meHours" value="5"></div>
+      <div class="pref-row"><label>Bevorzugte Tageszeit</label>
+        <select id="meTime"><option value="morning">Morgens (6–8)</option><option value="afternoon">Nachmittags (14–17)</option><option value="evening" selected>Abends (19–22)</option></select>
+      </div>
+      <div class="pref-row"><label>Min. Blockgröße (Min)</label><input type="number" min="15" max="120" step="15" id="meMinBlock" value="60"></div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:8px">
+    <div style="font-size:.9rem;font-weight:700;margin-bottom:10px">⏰ Ruhezeiten &amp; Wasser</div>
+    <div style="display:flex;gap:14px;flex-wrap:wrap">
+      <div class="pref-row"><label>Schlafen ab</label><input type="time" id="sleepStart" value="22:30"></div>
+      <div class="pref-row"><label>Aufstehen um</label><input type="time" id="wakeUp" value="06:30"></div>
+      <div class="pref-row"><label>Wasserziel (Gläser)</label><input type="number" min="4" max="12" id="waterGoal" value="8"></div>
+    </div>
+  </div>
+  <div class="btn-row"><button class="btn-primary" id="savePrefsBtn">💾 Einstellungen speichern</button></div>
+</div>
+</main>
+
+<!-- DAY EDITOR MODAL -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h2 id="modalTitle">Tag <button class="modal-close" id="modalClose">✕</button></h2>
+    <div class="event-list" id="eventList"></div>
+    <button class="add-event-btn" id="addEventBtn">+ Aktivität hinzufügen</button>
+    <div class="btn-row" style="margin-top:14px">
+      <button class="btn-primary" id="saveModalBtn">Speichern</button>
+      <button class="btn-secondary" id="cancelModalBtn">Abbrechen</button>
+    </div>
+  </div>
+</div>
+
+<!-- FIT MODAL -->
+<div class="modal-overlay" id="fitModalOverlay">
+  <div class="modal fit-modal">
+    <h2 id="fitModalTitle">Workout <button class="modal-close" id="fitModalClose">✕</button></h2>
+    <div id="fitModalBody"></div>
+  </div>
+</div>
+
+<!-- WATER POPUP -->
+<div class="water-popup" id="waterPopup">
+  <button class="wp-close" id="wpClose">✕</button>
+  <div class="wp-title">💧 Zeit zu trinken!</div>
+  <div class="wp-sub">Du hast es verdient! Bereits <span id="wpCount">0</span>/<span id="wpGoal">8</span> Gläser heute.</div>
+  <button class="wp-btn" id="wpDrinkBtn">✓ Getrunken!</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════ DETAILED HUMAN SVG ILLUSTRATIONS ═══════════
+// Each exercise gets its own carefully drawn SVG with realistic human proportions
+
+const BG = {
+  body:'#E8F5E9', band:'#FFF8E1', db:'#E3F2FD', foam:'#F3E5F5', bike:'#E0F7FA'
+};
+
+// Each SVG is hand-crafted with realistic anatomy: proper head/hair, curved torso,
+// natural limb proportions, clothing detail, and equipment where relevant.
+
+const EXERCISE_SVGS = {
+
+pushup: `<svg viewBox="0 0 220 140" xmlns="http://www.w3.org/2000/svg">
+<rect width="220" height="140" fill="${BG.body}" rx="8"/>
+<rect x="0" y="110" width="220" height="30" fill="#C8E6C9" rx="0"/>
+<!-- floor line -->
+<line x1="10" y1="111" x2="210" y2="111" stroke="#A5D6A7" stroke-width="1.5"/>
+<!-- head -->
+<ellipse cx="168" cy="68" rx="14" ry="15" fill="#D4956A"/>
+<ellipse cx="168" cy="58" rx="13" ry="9" fill="#3D2B1F"/>
+<path d="M155 64 Q158 60 162 62" fill="none" stroke="#D4956A" stroke-width="1.5"/>
+<!-- neck -->
+<rect x="163" y="82" width="10" height="8" rx="3" fill="#D4956A"/>
+<!-- torso - horizontal push-up position -->
+<path d="M60 89 Q90 82 130 82 Q150 82 163 84" stroke="#6A9E72" stroke-width="16" fill="none" stroke-linecap="round"/>
+<!-- shirt detail -->
+<path d="M80 87 Q110 80 145 82" stroke="#5C8A64" stroke-width="3" fill="none" stroke-linecap="round"/>
+<!-- right arm down (supporting) -->
+<line x1="158" y1="88" x2="163" y2="110" stroke="#6A9E72" stroke-width="9" stroke-linecap="round"/>
+<ellipse cx="163" cy="112" rx="6" ry="4" fill="#D4956A"/>
+<!-- left arm down (supporting) -->
+<line x1="70" y1="88" x2="65" y2="110" stroke="#6A9E72" stroke-width="9" stroke-linecap="round"/>
+<ellipse cx="65" cy="112" rx="6" ry="4" fill="#D4956A"/>
+<!-- hips/glutes -->
+<path d="M55 86 Q40 88 35 90" stroke="#4A6572" stroke-width="14" fill="none" stroke-linecap="round"/>
+<!-- legs -->
+<line x1="38" y1="88" x2="22" y2="110" stroke="#4A6572" stroke-width="10" stroke-linecap="round"/>
+<line x1="50" y1="89" x2="36" y2="110" stroke="#4A6572" stroke-width="10" stroke-linecap="round"/>
+<!-- feet -->
+<ellipse cx="20" cy="112" rx="7" ry="5" fill="#3D2B1F"/>
+<ellipse cx="35" cy="112" rx="7" ry="5" fill="#3D2B1F"/>
+<text x="12" y="18" font-family="sans-serif" font-size="11" fill="#2d6a35" font-weight="700">Liegestütze</text>
+<text x="12" y="32" font-family="sans-serif" font-size="8.5" fill="#555">Körper gerade · Knie-Variante möglich</text>
+</svg>`,
+
+glute: `<svg viewBox="0 0 220 140" xmlns="http://www.w3.org/2000/svg">
+<rect width="220" height="140" fill="${BG.body}" rx="8"/>
+<rect x="0" y="112" width="220" height="28" fill="#C8E6C9"/>
+<line x1="10" y1="113" x2="210" y2="113" stroke="#A5D6A7" stroke-width="1.5"/>
+<!-- head lying back -->
+<ellipse cx="28" cy="96" rx="14" ry="15" fill="#D4956A"/>
+<ellipse cx="26" cy="85" rx="13" ry="8" fill="#3D2B1F"/>
+<!-- torso arched up - glute bridge shape -->
+<path d="M42 100 Q70 72 110 65 Q140 60 165 70 Q178 76 182 90" stroke="#6A9E72" stroke-width="16" fill="none" stroke-linecap="round"/>
+<!-- hip highlight -->
+<path d="M108 65 Q130 60 150 67" stroke="#5C8A64" stroke-width="4" fill="none" stroke-linecap="round"/>
+<!-- arms on floor -->
+<line x1="38" y1="102" x2="18" y2="112" stroke="#6A9E72" stroke-width="8" stroke-linecap="round"/>
+<line x1="50" y1="100" x2="66" y2="112" stroke="#6A9E72" stroke-width="8" stroke-linecap="round"/>
+<!-- thighs bent -->
+<line x1="176" y1="88" x2="188" y2="112" stroke="#4A6572" stroke-width="12" stroke-linecap="round"/>
+<line x1="185" y1="90" x2="200" y2="112" stroke="#4A6572" stroke-width="12" stroke-linecap="round"/>
+<!-- shins vertical -->
+<line x1="188" y1="112" x2="186" y2="113" stroke="#4A6572" stroke-width="10" stroke-linecap="round"/>
+<line x1="200" y1="112" x2="198" y2="113" stroke="#4A6572" stroke-width="10" stroke-linecap="round"/>
+<!-- feet flat -->
+<rect x="178" y="108" width="16" height="8" rx="3" fill="#3D2B1F"/>
+<rect x="192" y="108" width="16" height="8" rx="3" fill="#3D2B1F"/>
+<!-- arrow showing hip up -->
+<text x="100" y="42" font-family="sans-serif" font-size="14" fill="#6A9E72">↑</text>
+<text x="12" y="18" font-family="sans-serif" font-size="11" fill="#2d6a35" font-weight="700">Glute Bridge</text>
+<text x="12" y="32" font-family="sans-serif" font-size="8.5" fill="#555">Hüfte zur Decke · Po anspannen</text>
+</svg>`,
+
+plank: `<svg viewBox="0 0 220 140" xmlns="http://www.w3.org/2000/svg">
+<rect width="220" height="140" fill="${BG.body}" rx="8"/>
+<rect x="0" y="112" width="220" height="28" fill="#C8E6C9"/>
+<line x1="10" y1="113" x2="210" y2="113" stroke="#A5D6A7" stroke-width="1.5"/>
+<!-- head -->
+<ellipse cx="185" cy="80" rx="14" ry="15" fill="#D4956A"/>
+<ellipse cx="186" cy="69" rx="13" ry="8" fill="#3D2B1F"/>
+<!-- perfectly straight body - plank -->
+<path d="M30 100 Q80 95 130 90 Q158 87 172 86" stroke="#6A9E72" stroke-width="14" fill="none" stroke-linecap="round"/>
+<!-- body alignment line -->
+<path d="M50 99 Q100 93 145 89" stroke="#5C8A64" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-dasharray="4,3"/>
+<!-- forearms on floor -->
+<line x1="172" y1="90" x2="185" y2="112" stroke="#6A9E72" stroke-width="9" stroke-linecap="round"/>
+<line x1="155" y1="91" x2="162" y2="112" stroke="#6A9E72" stroke-width="9" stroke-linecap="round"/>
+<!-- forearm flat -->
+<rect x="158" y="108" width="28" height="7" rx="3" fill="#D4956A"/>
+<!-- legs straight -->
+<line x1="32" y1="100" x2="28" y2="112" stroke="#4A6572" stroke-width="11" stroke-linecap="round"/>
+<line x1="44" y1="99" x2="42" y2="112" stroke="#4A6572" stroke-width="11" stroke-linecap="round"/>
+<!-- toes on floor -->
+<ellipse cx="26" cy="113" rx="7" ry="4" fill="#3D2B1F"/>
+<ellipse cx="40" cy="113" rx="7" ry="4" fill="#3D2B1F"/>
+<!-- correct posture arrow -->
+<text x="12" y="18" font-family="sans-serif" font-size="11" fill="#2d6a35" font-weight="700">Unterarm-Plank</text>
+<text x="12" y="32" font-family="sans-serif" font-size="8.5" fill="#555">Körper gerade · Blick zum Boden · kein Nacken</text>
+</svg>`,
+
+squat: `<svg viewBox="0 0 220 140" xmlns="http://www.w3.org/2000/svg">
+<rect width="220" height="140" fill="${BG.body}" rx="8"/>
+<rect x="0" y="118" width="220" height="22" fill="#C8E6C9"/>
+<!-- head -->
+<ellipse cx="110" cy="30" rx="15" ry="16" fill="#D4956A"/>
+<ellipse cx="110" cy="18" rx="14" ry="10" fill="#3D2B1F"/>
+<!-- ponytail -->
+<path d="M122 20 Q132 15 130 28" stroke="#3D2B1F" stroke-width="5" fill="none" stroke-linecap="round"/>
+<!-- neck -->
+<rect x="106" y="45" width="9" height="8" rx="3" fill="#D4956A"/>
+<!-- torso slight forward lean -->
+<path d="M100 52 Q108 53 118 52 Q122 52 124 58" stroke="#6A9E72" stroke-width="16" fill="none" stroke-linecap="round"/>
+<!-- arms forward for balance -->
+<line x1="100" y1="60" x2="76" y2="72" stroke="#6A9E72" stroke-width="9" stroke-linecap="round"/>
+<line x1="118" y1="60" x2="142" y2="72" stroke="#6A9E72" stroke-width="9" stroke-linecap="round"/>
+<ellipse cx="72" cy="73" rx="5" ry="4" fill="#D4956A"/>
+<ellipse cx="146" cy="73" rx="5" ry="4" fill="#D4956A"/>
+<!-- thighs - 90 degree squat -->
+<line x1="104" y1="68" x2="82" y2="96" stroke="#4A6572" stroke-width="13" stroke-linecap="round"/>
+<line x1="116" y1="68" x2="138" y2="96" stroke="#4A6572" stroke-width="13" stroke-linecap="round"/>
+<!-- shins -->
+<line x1="82" y1="96" x2="78" y2="118" stroke="#4A6572" stroke-width="11" stroke-linecap="round"/>
+<line x1="138" y1="96" x2="142" y2="118" stroke="#4A6572" stroke-width="11" stroke-linecap="round"/>
+<!-- feet -->
+<rect x="68" y="113" width="18" height="8" rx="3" fill="#3D2B1F"/>
+<rect x="133" y="113" width="18" height="8" rx="3" fill="#3D2B1F"/>
+<!-- 90° marker -->
+<path d="M92 96 L88 104 L96 106" fill="none" stroke="#c62828" stroke-width="1.5"/>
+<text x="68" y="12" font-family="sans-serif" font-size="7" fill="#c62828" font-weight="700">🔴 Max 90°</text>
+<text x="12" y="132" font-family="sans-serif" font-size="11" fill="#2d6a35" font-weight="700">Squat (modifiziert)</text>
+</svg>`,
+
+deadbug: `<svg viewBox="0 0 220 140" xmlns="http://www.w3.org/2000/svg">
+<rect width="220" height="140" fill="${BG.body}" rx="8"/>
+<rect x="0" y="112" width="220" height="28" fill="#C8E6C9"/>
+<!-- person lying on back, head left -->
+<ellipse cx="22" cy="85" rx="14" ry="15" fill="#D4956A"/>
+<ellipse cx="20" cy="74" rx="13" ry="9" fill="#3D2B1F"/>
+<!-- torso flat on ground -->
+<path d="M35 88 Q80 86 120 85 Q150 84 170 85" stroke="#6A9E72" stroke-width="14" fill="none" stroke-linecap="round"/>
+<!-- left arm raised up to ceiling -->
+<line x1="60" y1="84" x2="52" y2="55" stroke="#6A9E72" stroke-width="8" stroke-linecap="round"/>
+<ellipse cx="50" cy="52" rx="5" ry="4" fill="#D4956A"/>
+<!-- right arm down on floor -->
+<line x1="100" y1="85" x2="118" y2="112" stroke="#6A9E72" stroke-width="8" stroke-linecap="round"/>
+<ellipse cx="120" cy="113" rx="5" ry="4" fill="#D4956A"/>
+<!-- left leg extended straight (opposite to raised arm) -->
+<line x1="155" y1="84" x2="198" y2="60" stroke="#4A6572" stroke-width="11" stroke-linecap="round"/>
+<ellipse cx="200" cy="58" rx="7" ry="5" fill="#3D2B1F"/>
+<!-- right leg bent up (table-top) -->
+<line x1="168" y1="85" x2="185" y2="62" stroke="#4A6572" stroke-width="11" stroke-linecap="round"/>
+<line x1="185" y1="62" x2="205" y2="68" stroke="#4A6572" stroke-width="10" stroke-linecap="round"/>
+<ellipse cx="207" cy="68" rx="6" ry="5" fill="#3D2B1F"/>
+<text x="12" y="18" font-family="sans-serif" font-size="11" fill="#2d6a35" font-weight="700">Dead Bug</text>
+<text x="12" y="32" font-family="sans-serif" font-size="8.5" fill="#555">Rücken bleibt am Boden · Core aktiv</text>
+</svg>`,
+
+step: `<svg viewBox="0 0 220 140" xmlns="http://www.w3.org/2000/svg">
+<rect width="220" height="140" fill="${BG.body}" rx="8"/>
+<!-- floor -->
+<rect x="0" y="118" width="220" height="22" fill="#C8E6C9"/>
+<!-- step/box -->
+<rect x="100" y="90" width="90" height="28" rx="4" fill="#81C784"/>
+<rect x="100" y="90" width="90" height="6" rx="3" fill="#66BB6A"/>
+<!-- head -->
+<ellipse cx="115" cy="28" rx="15" ry="16" fill="#D4956A"/>
+<ellipse cx="115" cy="16" rx="14" ry="10" fill="#3D2B1F"/>
+<path d="M126 18 Q134 13 132 25" stroke="#3D2B1F" stroke-width="4" fill="none" stroke-linecap="round"/>
+<!-- torso upright -->
+<path d="M107 44 Q113 43 121 44 Q124 50 122 66" stroke="#6A9E72" stroke-width="15" fill="none" stroke-linecap="round"/>
+<!-- arms relaxed -->
+<line x1="108" y1="52" x2="96" y2="72" stroke="#6A9E72" stroke-width="8" stroke-linecap="round"/>
+<line x1="120" y1="52" x2="132" y2="72" stroke="#6A9E72" stroke-width="8" stroke-linecap="round"/>
+<ellipse cx="95" cy="74" rx="5" ry="4" fill="#D4956A"/>
+<ellipse cx="133" cy="74" rx="5" ry="4" fill="#D4956A"/>
+<!-- right leg on step -->
+<line x1="118" y1="66" x2="145" y2="90" stroke="#4A6572" stroke-width="12" stroke-linecap="round"/>
+<line x1="145" y1="90" x2="150" y2="118" stroke="#4A6572" stroke-width="11" stroke-linecap="round"/>
+<!-- left leg still on floor -->
+<line x1="108" y1="66" x2="88" y2="90" stroke="#4A6572" stroke-width="12" stroke-linecap="round"/>
+<line x1="88" y1="90" x2="85" y2="118" stroke="#4A6572" stroke-width="11" stroke-linecap="round"/>
+<!-- shoes -->
+<rect x="138" y="112" width="20" height="9" rx="4" fill="#3D2B1F"/>
+<rect x="76" y="113" width="20" height="9" rx="4" fill="#3D2B1F"/>
+<text x="12" y="18" font-family="sans-serif" font-size="11" fill="#2d6a35" font-weight="700">Step-Ups</text>
+<text x="12" y="32" font-family="sans-serif" font-size="8.5" fill="#555">Kontrolliert hoch & runter · kein Springen</text>
+</svg>`,
+
+hipcircle: `<svg viewBox="0 0 220 140" xmlns="http://www.w3.org/2000/svg">
+<rect width="220" height="140" fill="${BG.body}" rx="8"/>
+<rect x="0" y="118" width="220" height="22" fill="#C8E6C9"/>
+<!-- head -->
+<ellipse cx="110" cy="28" rx="15" ry="16" fill="#D4956A"/>
+<ellipse cx="110" cy="16" rx="14" ry="10" fill="#3D2B1F"/>
+<!-- torso -->
+<path d="M100 44 Q108 43 118 44" stroke="#6A9E72" stroke-width="15" fill="none" stroke-linecap="round"/>
+<rect x="101" y="52" width="18" height="22" rx="5" fill="#6A9E72"/>
+<!-- arms out for balance -->
+<line x1="101" y1="56" x2="72" y2="62" stroke="#6A9E72" stroke-width="8" stroke-linecap="round"/>
+<line x1="119" y1="56" x2="148" y2="62" stroke="#6A9E72" stroke-width="8" stroke-linecap="round"/>
+<ellipse cx="69" cy="63" rx="5" ry="4" fill="#D4956A"/>
+<ellipse cx="151" cy="63" rx="5" ry="4" fill="#D4956A"/>
+<!-- hips/pelvis with circle motion arrow -->
+<ellipse cx="110" cy="78" rx="20" ry="14" fill="none" stroke="#F59E0B" stroke-width="2.5" stroke-dasharray="5,3"/>
+<path d="M128 72 Q132 68 128 64" fill="none" stroke="#F59E0B" stroke-width="2.5"/>
+<polygon points="128,64 133,70 122,70" fill="#F59E0B"/>
+<!-- legs -->
+<line x1="104" y1="74" x2="96" y2="118" stroke="#4A6572" stroke-width="12" stroke-linecap="round"/>
+<line x1="116" y1="74" x2="124" y2="118" stroke="#4A6572" stroke-width="12" stroke-linecap="round"/>
+<rect x="86" y="113" width="18" height="8" rx="4" fill="#3D2B1F"/>
+<rect x="116" y="113" width="18" height="8" rx="4" fill="#3D2B1F"/>
+<text x="12" y="18" font-family="sans-serif" font-size="11" fill="#2d6a35" font-weight="700">Hip Circles</text>
+<text x="12" y="32" font-family="sans-serif" font-size="8.5" fill="#555">Hüfte groß kreisen lassen · beide Richtungen</text>
+</svg>`,
+
+wallsit: `<svg viewBox="0 0 220 140" xmlns="http://www.w3.org/2000/svg">
+<rect width="220" height="140" fill="${BG.body}" rx="8"/>
+<rect x="0" y="118" width="220" height="22" fill="#C8E6C9"/>
+<!-- wall -->
+<rect x="158" y="0" width="18" height="140" fill="#B0BEC5" rx="0"/>
+<rect x="158" y="0" width="4" height="140" fill="#90A4AE"/>
+<!-- head -->
+<ellipse cx="120" cy="30" rx="15" ry="16" fill="#D4956A"/>
+<ellipse cx="120" cy="18" rx="14" ry="10" fill="#3D2B1F"/>
+<!-- back against wall, torso vertical -->
+<rect x="136" y="44" width="22" height="46" rx="5" fill="#6A9E72"/>
+<!-- arms on thighs -->
+<line x1="138" y1="60" x2="108" y2="76" stroke="#6A9E72" stroke-width="9" stroke-linecap="round"/>
+<line x1="156" y1="60" x2="150" y2="76" stroke="#6A9E72" stroke-width="9" stroke-linecap="round"/>
+<ellipse cx="106" cy="77" rx="5" ry="4" fill="#D4956A"/>
+<ellipse cx="149" cy="77" rx="5" ry="4" fill="#D4956A"/>
+<!-- thighs horizontal (90°) -->
+<line x1="138" y1="90" x2="88" y2="92" stroke="#4A6572" stroke-width="14" stroke-linecap="round"/>
+<line x1="155" y1="90" x2="106" y2="94" stroke="#4A6572" stroke-width="14" stroke-linecap="round"/>
+<!-- shins vertical -->
+<line x1="88" y1="92" x2="85" y2="118" stroke="#4A6572" stroke-width="12" stroke-linecap="round"/>
+<line x1="106" y1="94" x2="103" y2="118" stroke="#4A6572" stroke-width="12" stroke-linecap="round"/>
+<!-- feet -->
+<rect x="75" y="114" width="18" height="8" rx="4" fill="#3D2B1F"/>
+<rect x="94" y="114" width="18" height="8" rx="4" fill="#3D2B1F"/>
+<!-- 90° indicator -->
+<path d="M92 92 L88 100 L96 101" fill="none" stroke="#c62828" stroke-width="1.5"/>
+<text x="8" y="130" font-family="sans-serif" font-size="7" fill="#c62828" font-weight="700">🔴 Max 90°</text>
+<text x="12" y="18" font-family="sans-serif" font-size="11" fill="#2d6a35" font-weight="700">Wandsitzen</text>
+<text x="12" y="32" font-family="sans-serif" font-size="8.5" fill="#555">Rücken an Wand · Position halten</text>
+</svg>`,
+
+sideplank: `<svg viewBox="0 0 220 140" xmlns="http://www.w3.org/2000/svg">
+<rect width="220" height="140" fill="${BG.body}" rx="8"/>
+<rect x="0" y="112" width="220" height="28" fill="#C8E6C9"/>
+<line x1="10" y1="113" x2="210" y2="113" stroke="#A5D6A7" stroke-width="1.5"/>
+<!-- head (side view) -->
+<ellipse cx="185" cy="72" rx="14" ry="15" fill="#D4956A"/>
+<ellipse cx="187" cy="61" rx="12" ry="8" fill="#3D2B1F"/>
+<!-- side plank body diagonal -->
+<path d="M30 108 Q80 95 130 85 Q155 80 172 78" stroke="#6A9E72" stroke-width="14" fill="none" stroke-linecap="round"/>
+<!-- one arm supporting - forearm on floor -->
+<line x1="170" y1="82" x2="178" y2="112" stroke="#6A9E72" stroke-width="9" stroke-linecap="round"/>
+<rect x="162" y="108" width="24" height="7" rx="3" fill="#D4956A"/>
+<!-- top arm raised straight up -->
+<line x1="140" y1="82" x2="134" y2="55" stroke="#6A9E72" stroke-width="8" stroke-linecap="round"/>
+<ellipse cx="133" cy="52" rx="5" ry="4" fill="#D4956A"/>
+<!-- stacked legs -->
+<line x1="32" y1="108" x2="28" y2="112" stroke="#4A6572" stroke-width="12" stroke-linecap="round"/>
+<line x1="44" y1="106" x2="40" y2="112" stroke="#4A6572" stroke-width="12" stroke-linecap="round"/>
+<ellipse cx="26" cy="113" rx="7" ry="4" fill="#3D2B1F"/>
+<ellipse cx="40" cy="113" rx="7" ry="4" fill="#3D2B1F"/>
+<text x="12" y="18" font-family="sans-serif" font-size="11" fill="#2d6a35" font-weight="700">Seitstütz</text>
+<text x="12" y="32" font-family="sans-serif" font-size="8.5" fill="#555">Hüfte oben halten · Core seitlich</text>
+</svg>`,
+
+band_row: `<svg viewBox="0 0 220 140" xmlns="http://www.w3.org/2000/svg">
+<rect width="220" height="140" fill="${BG.band}" rx="8"/>
+<rect x="0" y="118" width="220" height="22" fill="#FFE0B2"/>
+<!-- door/anchor point -->
+<rect x="8" y="30" width="16" height="80" rx="4" fill="#BCAAA4"/>
+<rect x="8" y="30" width="4" height="80" fill="#A1887F"/>
+<circle cx="24" cy="72" r="5" fill="#78909C"/>
+<!-- resistance band - elastic lines -->
+<path d="M24 72 Q60 65 82 68" stroke="#F59E0B" stroke-width="4" fill="none" stroke-linecap="round"/>
+<path d="M24 72 Q60 75 82 72" stroke="#F59E0B" stroke-width="2" fill="none" stroke-linecap="round" stroke-dasharray="3,2"/>
+<!-- head -->
+<ellipse cx="152" cy="52" rx="15" ry="16" fill="#D4956A"/>
+<ellipse cx="152" cy="40" rx="14" ry="10" fill="#3D2B1F"/>
+<path d="M163 42 Q170 37 168 50" stroke="#3D2B1F" stroke-width="4" fill="none" stroke-linecap="round"/>
+<!-- torso forward lean -->
+<path d="M140 68 Q148 66 158 66 Q165 68 168 76" stroke="#E65100" stroke-width="14" fill="none" stroke-linecap="round"/>
+<!-- pulling arm bent back (elbow high) -->
+<line x1="142" y1="70" x2="115" y2="60" stroke="#E65100" stroke-width="9" stroke-linecap="round"/>
+<line x1="115" y1="60" x2="82" y2="70" stroke="#E65100" stroke-width="8" stroke-linecap="round"/>
+<ellipse cx="80" cy="71" rx="6" ry="5" fill="#D4956A"/>
+<!-- band connects to hand -->
+<!-- other arm stabilizing on thigh -->
+<line x1="158" y1="72" x2="172" y2="88" stroke="#E65100" stroke-width="8" stroke-linecap="round"/>
+<ellipse cx="174" cy="90" rx="5" ry="4" fill="#D4956A"/>
+<!-- legs split stance -->
+<line x1="148" y1="80" x2="130" y2="118" stroke="#4A6572" stroke-width="12" stroke-linecap="round"/>
+<line x1="162" y1="80" x2="178" y2="118" stroke="#4A6572" stroke-width="12" stroke-linecap="round"/>
+<rect x="120" y="113" width="18" height="8" rx="4" fill="#3D2B1F"/>
+<rect x="169" y="113" width="18" height="8" rx="4" fill="#3D2B1F"/>
+<text x="38" y="18" font-family="sans-serif" font-size="11" fill="#7c4a1a" font-weight="700">Band Row</text>
+<text x="38" y="32" font-family="sans-serif" font-size="8.5" fill="#555">Ellenbogen nach hinten · Schulterblätter</text>
+</svg>`,
+
+band_press: `<svg viewBox="0 0 220 140" xmlns="http://www.w3.org/2000/svg">
+<rect width="220" height="140" fill="${BG.band}" rx="8"/>
+<rect x="0" y="118" width="220" height="22" fill="#FFE0B2"/>
+<!-- anchor wall right -->
+<rect x="196" y="30" width="24" height="80" rx="0" fill="#BCAAA4"/>
+<circle cx="196" cy="72" r="5" fill="#78909C"/>
+<!-- band -->
+<path d="M196 72 Q170 62 148 64" stroke="#F59E0B" stroke-width="4" fill="none"/>
+<path d="M196 72 Q170 80 148 78" stroke="#F59E0B" stroke-width="2" stroke-dasharray="3,2" fill="none"/>
+<path d="M196 72 Q168 62 148 64" stroke="#F59E0B" stroke-width="4" fill="none"/>
+<!-- head -->
+<ellipse cx="82" cy="42" rx="15" ry="16" fill="#D4956A"/>
+<ellipse cx="82" cy="30" rx="14" ry="10" fill="#3D2B1F"/>
+<!-- torso upright -->
+<rect x="74" y="58" width="18" height="30" rx="5" fill="#E65100"/>
+<!-- arms pressing forward - both extended -->
+<line x1="76" y1="68" x2="50" y2="68" stroke="#E65100" stroke-width="9" stroke-linecap="round"/>
+<ellipse cx="47" cy="68" rx="5" ry="4" fill="#D4956A"/>
+<!-- band arm (other side) -->
+<line x1="90" y1="68" x2="148" y2="70" stroke="#E65100" stroke-width="9" stroke-linecap="round"/>
+<ellipse cx="150" cy="70" rx="6" ry="5" fill="#D4956A"/>
+<!-- legs -->
+<line x1="78" y1="88" x2="66" y2="118" stroke="#4A6572" stroke-width="12" stroke-linecap="round"/>
+<line x1="88" y1="88" x2="100" y2="118" stroke="#4A6572" stroke-width="12" stroke-linecap="round"/>
+<rect x="57" y="113" width="17" height="8" rx="4" fill="#3D2B1F"/>
+<rect x="91" y="113" width="17" height="8" rx="4" fill="#3D2B1F"/>
+<!-- arrows showing press direction -->
+<line x1="38" y1="68" x2="16" y2="68" stroke="#F59E0B" stroke-width="2"/>
+<polygon points="16,64 8,68 16,72" fill="#F59E0B"/>
+<text x="12" y="18" font-family="sans-serif" font-size="11" fill="#7c4a1a" font-weight="700">Band Chest Press</text>
+<text x="12" y="32" font-family="sans-serif" font-size="8.5" fill="#555">Band hinter dem Rücken · nach vorne drücken</text>
+</svg>`,
+
+band_glute: `<svg viewBox="0 0 220 140" xmlns="http://www.w3.org/2000/svg">
+<rect width="220" height="140" fill="${BG.band}" rx="8"/>
+<rect x="0" y="118" width="220" height="22" fill="#FFE0B2"/>
+<!-- head -->
+<ellipse cx="68" cy="35" rx="15" ry="16" fill="#D4956A"/>
+<ellipse cx="68" cy="23" rx="14" ry="10" fill="#3D2B1F"/>
+<!-- torso forward lean (on hands-knees base) -->
+<path d="M58 52 Q66 50 76 52 Q80 56 82 68" stroke="#E65100" stroke-width="14" fill="none" stroke-linecap="round"/>
+<!-- arms supporting floor -->
+<line x1="60" y1="60" x2="46" y2="88" stroke="#E65100" stroke-width="9" stroke-linecap="round"/>
+<line x1="78" y1="60" x2="90" y2="86" stroke="#E65100" stroke-width="9" stroke-linecap="round"/>
+<ellipse cx="44" cy="90" rx="7" ry="5" fill="#D4956A"/>
+<ellipse cx="92" cy="88" rx="7" ry="5" fill="#D4956A"/>
+<!-- supporting knee on floor -->
+<line x1="82" y1="70" x2="80" y2="100" stroke="#4A6572" stroke-width="14" stroke-linecap="round"/>
+<rect x="72" y="98" width="18" height="8" rx="4" fill="#4A6572"/>
+<!-- kicking leg straight back and up -->
+<line x1="74" y1="72" x2="145" y2="55" stroke="#4A6572" stroke-width="13" stroke-linecap="round"/>
+<!-- band around ankles -->
+<path d="M105 63 Q120 58 138 56" stroke="#F59E0B" stroke-width="5" fill="none" stroke-linecap="round"/>
+<ellipse cx="148" cy="54" rx="8" ry="6" fill="#3D2B1F"/>
+<!-- motion arrow -->
+<path d="M148 45 Q158 38 165 42" fill="none" stroke="#F59E0B" stroke-width="2"/>
+<polygon points="165,42 160,35 168,36" fill="#F59E0B"/>
+<text x="12" y="18" font-family="sans-serif" font-size="11" fill="#7c4a1a" font-weight="700">Band Kickback</text>
+<text x="12" y="32" font-family="sans-serif" font-size="8.5" fill="#555">Bein nach hinten-oben strecken · Po aktiv</text>
+</svg>`,
+
+band_lat: `<svg viewBox="0 0 220 140" xmlns="http://www.w3.org/2000/svg">
+<rect width="220" height="140" fill="${BG.band}" rx="8"/>
+<rect x="0" y="118" width="220" height="22" fill="#FFE0B2"/>
+<!-- head -->
+<ellipse cx="110" cy="28" rx="15" ry="16" fill="#D4956A"/>
+<ellipse cx="110" cy="16" rx="14" ry="10" fill="#3D2B1F"/>
+<!-- torso slightly bent forward -->
+<path d="M100 44 Q108 43 118 44 Q120 52 118 62" stroke="#E65100" stroke-width="14" fill="none" stroke-linecap="round"/>
+<!-- arms - stepping sideways pose -->
+<line x1="100" y1="52" x2="80" y2="60" stroke="#E65100" stroke-width="9" stroke-linecap="round"/>
+<line x1="118" y1="52" x2="138" y2="60" stroke="#E65100" stroke-width="9" stroke-linecap="round"/>
+<ellipse cx="78" cy="61" rx="5" ry="4" fill="#D4956A"/>
+<ellipse cx="140" cy="61" rx="5" ry="4" fill="#D4956A"/>
+<!-- wide stance legs - lateral walk position -->
+<line x1="105" y1="66" x2="78" y2="100" stroke="#4A6572" stroke-width="13" stroke-linecap="round"/>
+<line x1="115" y1="66" x2="145" y2="96" stroke="#4A6572" stroke-width="13" stroke-linecap="round"/>
+<line x1="78" y1="100" x2="74" y2="118" stroke="#4A6572" stroke-width="11" stroke-linecap="round"/>
+<line x1="145" y1="96" x2="148" y2="118" stroke="#4A6572" stroke-width="11" stroke-linecap="round"/>
+<!-- band at ankles -->
+<path d="M76 104 Q110 112 148 104" stroke="#F59E0B" stroke-width="5" fill="none" stroke-linecap="round"/>
+<rect x="65" y="113" width="18" height="8" rx="4" fill="#3D2B1F"/>
+<rect x="139" y="113" width="18" height="8" rx="4" fill="#3D2B1F"/>
+<!-- directional arrows -->
+<line x1="60" y1="80" x2="38" y2="80" stroke="#F59E0B" stroke-width="2"/>
+<polygon points="38,76 28,80 38,84" fill="#F59E0B"/>
+<text x="12" y="18" font-family="sans-serif" font-size="11" fill="#7c4a1a" font-weight="700">Lateral Walk</text>
+<text x="12" y="32" font-family="sans-serif" font-size="8.5" fill="#555">Band gespannt · seitwärts schreiten</text>
+</svg>`,
+
+band_shoulder: `<svg viewBox="0 0 220 140" xmlns="http://www.w3.org/2000/svg">
+<rect width="220" height="140" fill="${BG.band}" rx="8"/>
+<rect x="0" y="118" width="220" height="22" fill="#FFE0B2"/>
+<!-- head -->
+<ellipse cx="110" cy="28" rx="15" ry="16" fill="#D4956A"/>
+<ellipse cx="110" cy="16" rx="14" ry="10" fill="#3D2B1F"/>
+<!-- torso -->
+<rect x="101" y="44" width="20" height="30" rx="5" fill="#E65100"/>
+<!-- elbow 90° rotation - arm at side -->
+<line x1="101" y1="56" x2="76" y2="58" stroke="#E65100" stroke-width="9" stroke-linecap="round"/>
+<!-- forearm pointing forward -->
+<line x1="76" y1="58" x2="64" y2="44" stroke="#E65100" stroke-width="8" stroke-linecap="round"/>
+<ellipse cx="62" cy="42" rx="5" ry="4" fill="#D4956A"/>
+<!-- other elbow 90° - rotating OUT -->
+<line x1="121" y1="56" x2="148" y2="56" stroke="#E65100" stroke-width="9" stroke-linecap="round"/>
+<line x1="148" y1="56" x2="160" y2="40" stroke="#E65100" stroke-width="8" stroke-linecap="round"/>
+<ellipse cx="162" cy="38" rx="5" ry="4" fill="#D4956A"/>
+<!-- band between hands -->
+<path d="M64 42 Q80 30 110 32 Q138 32 162 38" stroke="#F59E0B" stroke-width="4" fill="none" stroke-linecap="round"/>
+<!-- rotation arrow -->
+<path d="M155 30 Q165 22 170 32" fill="none" stroke="#F59E0B" stroke-width="2.5"/>
+<polygon points="170,32 162,28 168,36" fill="#F59E0B"/>
+<!-- legs -->
+<line x1="106" y1="74" x2="96" y2="118" stroke="#4A6572" stroke-width="12" stroke-linecap="round"/>
+<line x1="114" y1="74" x2="124" y2="118" stroke="#4A6572" stroke-width="12" stroke-linecap="round"/>
+<rect x="87" y="113" width="17" height="8" rx="4" fill="#3D2B1F"/>
+<rect x="115" y="113" width="17" height="8" rx="4" fill="#3D2B1F"/>
+<text x="12" y="18" font-family="sans-serif" font-size="10" fill="#7c4a1a" font-weight="700">Schulterrotation</text>
+<text x="12" y="32" font-family="sans-serif" font-size="8.5" fill="#555">Ellenbogen 90° · nach außen rotieren</text>
+</svg>`,
+
+db_curl: `<svg viewBox="0 0 220 140" xmlns="http://www.w3.org/2000/svg">
+<rect width="220" height="140" fill="${BG.db}" rx="8"/>
+<rect x="0" y="118" width="220" height="22" fill="#BBDEFB"/>
+<!-- head -->
+<ellipse cx="110" cy="28" rx="15" ry="16" fill="#D4956A"/>
+<ellipse cx="110" cy="16" rx="14" ry="10" fill="#3D2B1F"/>
+<path d="M122 18 Q130 13 128 26" stroke="#3D2B1F" stroke-width="4" fill="none" stroke-linecap="round"/>
+<!-- torso -->
+<rect x="101" y="44" width="20" height="34" rx="5" fill="#1565C0"/>
+<!-- LEFT arm - straight down holding dumbbell -->
+<line x1="101" y1="58" x2="86" y2="90" stroke="#1565C0" stroke-width="9" stroke-linecap="round"/>
+<line x1="86" y1="90" x2="84" y2="110" stroke="#D4956A" stroke-width="7" stroke-linecap="round"/>
+<!-- dumbbell left -->
+<rect x="72" y="107" width="24" height="7" rx="3" fill="#607D8B"/>
+<rect x="70" y="105" width="6" height="11" rx="2" fill="#455A64"/>
+<rect x="92" y="105" width="6" height="11" rx="2" fill="#455A64"/>
+<!-- RIGHT arm - curled up, bicep contracted -->
+<line x1="119" y1="58" x2="138" y2="72" stroke="#1565C0" stroke-width="9" stroke-linecap="round"/>
+<line x1="138" y1="72" x2="130" y2="52" stroke="#D4956A" stroke-width="7" stroke-linecap="round"/>
+<!-- dumbbell right (up position) -->
+<rect x="118" y="44" width="24" height="7" rx="3" fill="#607D8B"/>
+<rect x="116" y="42" width="6" height="11" rx="2" fill="#455A64"/>
+<rect x="138" y="42" width="6" height="11" rx="2" fill="#455A64"/>
+<!-- motion arrow -->
+<path d="M134 80 Q142 68 136 58" fill="none" stroke="#F59E0B" stroke-width="2"/>
+<polygon points="136,58 130,62 140,64" fill="#F59E0B"/>
+<!-- legs -->
+<line x1="106" y1="78" x2="96" y2="118" stroke="#37474F" stroke-width="12" stroke-linecap="round"/>
+<line x1="114" y1="78" x2="124" y2="118" stroke="#37474F" stroke-width="12" stroke-linecap="round"/>
+<rect x="87" y="113" width="17" height="8" rx="4" fill="#3D2B1F"/>
+<rect x="115" y="113" width="17" height="8" rx="4" fill="#3D2B1F"/>
+<text x="12" y="18" font-family="sans-serif" font-size="11" fill="#1a3a5c" font-weight="700">Bizeps Curl</text>
+<text x="12" y="32" font-family="sans-serif" font-size="8.5" fill="#555">Ellenbogen fixiert · kontrolliert heben</text>
+</svg>`,
+
+db_press: `<svg viewBox="0 0 220 140" xmlns="http://www.w3.org/2000/svg">
+<rect width="220" height="140" fill="${BG.db}" rx="8"/>
+<rect x="0" y="118" width="220" height="22" fill="#BBDEFB"/>
+<!-- bench/chair hint -->
+<rect x="80" y="96" width="60" height="14" rx="4" fill="#BCAAA4"/>
+<rect x="88" y="110" width="8" height="10" rx="2" fill="#A1887F"/>
+<rect x="124" y="110" width="8" height="10" rx="2" fill="#A1887F"/>
+<!-- head -->
+<ellipse cx="110" cy="26" rx="15" ry="16" fill="#D4956A"/>
+<ellipse cx="110" cy="14" rx="14" ry="10" fill="#3D2B1F"/>
+<!-- torso seated -->
+<rect x="100" y="42" width="22" height="40" rx="5" fill="#1565C0"/>
+<!-- both arms pressed up overhead -->
+<line x1="100" y1="54" x2="76" y2="38" stroke="#1565C0" stroke-width="9" stroke-linecap="round"/>
+<line x1="122" y1="54" x2="146" y2="38" stroke="#1565C0" stroke-width="9" stroke-linecap="round"/>
+<!-- dumbbells at top -->
+<rect x="60" y="32" width="22" height="7" rx="3" fill="#607D8B"/>
+<rect x="58" y="30" width="6" height="11" rx="2" fill="#455A64"/>
+<rect x="78" y="30" width="6" height="11" rx="2" fill="#455A64"/>
+<rect x="140" y="32" width="22" height="7" rx="3" fill="#607D8B"/>
+<rect x="138" y="30" width="6" height="11" rx="2" fill="#455A64"/>
+<rect x="158" y="30" width="6" height="11" rx="2" fill="#455A64"/>
+<!-- hands -->
+<ellipse cx="76" cy="37" rx="5" ry="4" fill="#D4956A"/>
+<ellipse cx="146" cy="37" rx="5" ry="4" fill="#D4956A"/>
+<!-- thighs sitting -->
+<line x1="102" y1="82" x2="80" y2="96" stroke="#37474F" stroke-width="14" stroke-linecap="round"/>
+<line x1="120" y1="82" x2="140" y2="96" stroke="#37474F" stroke-width="14" stroke-linecap="round"/>
+<!-- lower legs down -->
+<line x1="80" y1="96" x2="78" y2="118" stroke="#37474F" stroke-width="11" stroke-linecap="round"/>
+<line x1="140" y1="96" x2="142" y2="118" stroke="#37474F" stroke-width="11" stroke-linecap="round"/>
+<rect x="69" y="113" width="16" height="8" rx="4" fill="#3D2B1F"/>
+<rect x="133" y="113" width="16" height="8" rx="4" fill="#3D2B1F"/>
+<!-- up arrows -->
+<text x="85" y="16" font-family="sans-serif" font-size="12" fill="#1565C0">↑ ↑</text>
+<text x="12" y="18" font-family="sans-serif" font-size="10" fill="#1a3a5c" font-weight="700">Schulterdrücken</text>
+</svg>`,
+
+db_rdl: `<svg viewBox="0 0 220 140" xmlns="http://www.w3.org/2000/svg">
+<rect width="220" height="140" fill="${BG.db}" rx="8"/>
+<rect x="0" y="118" width="220" height="22" fill="#BBDEFB"/>
+<!-- head -->
+<ellipse cx="168" cy="40" rx="14" ry="15" fill="#D4956A"/>
+<ellipse cx="170" cy="29" rx="13" ry="9" fill="#3D2B1F"/>
+<!-- torso hinging forward - flat back -->
+<path d="M60 78 Q90 68 120 60 Q145 54 157 52" stroke="#1565C0" stroke-width="14" fill="none" stroke-linecap="round"/>
+<!-- straight spine line (good form indicator) -->
+<path d="M70 77 Q100 67 130 59" stroke="#BBDEFB" stroke-width="2" stroke-dasharray="4,3" fill="none"/>
+<!-- arms hanging straight down with dumbbells -->
+<line x1="95" y1="66" x2="92" y2="92" stroke="#1565C0" stroke-width="9" stroke-linecap="round"/>
+<line x1="120" y1="60" x2="118" y2="86" stroke="#1565C0" stroke-width="9" stroke-linecap="round"/>
+<ellipse cx="91" cy="94" rx="5" ry="4" fill="#D4956A"/>
+<ellipse cx="117" cy="88" rx="5" ry="4" fill="#D4956A"/>
+<!-- dumbbells -->
+<rect x="79" y="91" width="22" height="7" rx="3" fill="#607D8B"/>
+<rect x="77" y="89" width="5" height="11" rx="2" fill="#455A64"/>
+<rect x="99" y="89" width="5" height="11" rx="2" fill="#455A64"/>
+<rect x="106" y="86" width="22" height="7" rx="3" fill="#607D8B"/>
+<rect x="104" y="84" width="5" height="11" rx="2" fill="#455A64"/>
+<rect x="126" y="84" width="5" height="11" rx="2" fill="#455A64"/>
+<!-- legs - slight knee bend, straight back -->
+<line x1="56" y1="76" x2="54" y2="118" stroke="#37474F" stroke-width="13" stroke-linecap="round"/>
+<line x1="68" y1="76" x2="70" y2="118" stroke="#37474F" stroke-width="13" stroke-linecap="round"/>
+<rect x="44" y="113" width="18" height="8" rx="4" fill="#3D2B1F"/>
+<rect x="61" y="113" width="18" height="8" rx="4" fill="#3D2B1F"/>
+<!-- hinge arrow -->
+<path d="M158 68 Q168 60 170 54" fill="none" stroke="#F59E0B" stroke-width="2.5"/>
+<text x="12" y="18" font-family="sans-serif" font-size="10" fill="#1a3a5c" font-weight="700">Romanian Deadlift</text>
+<text x="12" y="32" font-family="sans-serif" font-size="8.5" fill="#555">Rücken gerade · Hüfte zurück schieben</text>
+</svg>`,
+
+db_lunge: `<svg viewBox="0 0 220 140" xmlns="http://www.w3.org/2000/svg">
+<rect width="220" height="140" fill="${BG.db}" rx="8"/>
+<rect x="0" y="118" width="220" height="22" fill="#BBDEFB"/>
+<!-- head -->
+<ellipse cx="110" cy="22" rx="15" ry="15" fill="#D4956A"/>
+<ellipse cx="110" cy="11" rx="14" ry="9" fill="#3D2B1F"/>
+<!-- torso upright -->
+<rect x="101" y="38" width="20" height="30" rx="5" fill="#1565C0"/>
+<!-- arms holding dumbbells at sides -->
+<line x1="101" y1="48" x2="80" y2="62" stroke="#1565C0" stroke-width="9" stroke-linecap="round"/>
+<ellipse cx="78" cy="64" rx="5" ry="4" fill="#D4956A"/>
+<line x1="121" y1="48" x2="142" y2="62" stroke="#1565C0" stroke-width="9" stroke-linecap="round"/>
+<ellipse cx="144" cy="64" rx="5" ry="4" fill="#D4956A"/>
+<!-- dumbbells at sides -->
+<rect x="66" y="62" width="20" height="6" rx="3" fill="#607D8B"/>
+<rect x="64" y="60" width="5" height="10" rx="2" fill="#455A64"/>
+<rect x="84" y="60" width="5" height="10" rx="2" fill="#455A64"/>
+<rect x="136" y="62" width="20" height="6" rx="3" fill="#607D8B"/>
+<rect x="134" y="60" width="5" height="10" rx="2" fill="#455A64"/>
+<rect x="154" y="60" width="5" height="10" rx="2" fill="#455A64"/>
+<!-- front leg bent 90 -->
+<line x1="107" y1="68" x2="82" y2="96" stroke="#37474F" stroke-width="13" stroke-linecap="round"/>
+<line x1="82" y1="96" x2="78" y2="118" stroke="#37474F" stroke-width="11" stroke-linecap="round"/>
+<!-- back leg bent behind -->
+<line x1="113" y1="68" x2="148" y2="88" stroke="#37474F" stroke-width="13" stroke-linecap="round"/>
+<line x1="148" y1="88" x2="152" y2="118" stroke="#37474F" stroke-width="11" stroke-linecap="round"/>
+<!-- shoes -->
+<rect x="68" y="113" width="18" height="8" rx="4" fill="#3D2B1F"/>
+<rect x="142" y="113" width="18" height="8" rx="4" fill="#3D2B1F"/>
+<!-- 90° angle indicator -->
+<path d="M86 96 L80 104 L90 106" fill="none" stroke="#c62828" stroke-width="1.5"/>
+<text x="8" y="130" font-family="sans-serif" font-size="7" fill="#c62828" font-weight="700">🔴 Max 90°</text>
+<text x="12" y="18" font-family="sans-serif" font-size="11" fill="#1a3a5c" font-weight="700">Ausfallschritt</text>
+</svg>`,
+
+db_tricep: `<svg viewBox="0 0 220 140" xmlns="http://www.w3.org/2000/svg">
+<rect width="220" height="140" fill="${BG.db}" rx="8"/>
+<rect x="0" y="118" width="220" height="22" fill="#BBDEFB"/>
+<!-- bench hint -->
+<rect x="80" y="96" width="60" height="12" rx="4" fill="#BCAAA4"/>
+<rect x="90" y="108" width="8" height="12" rx="2" fill="#A1887F"/>
+<rect x="122" y="108" width="8" height="12" rx="2" fill="#A1887F"/>
+<!-- head -->
+<ellipse cx="110" cy="26" rx="15" ry="16" fill="#D4956A"/>
+<ellipse cx="110" cy="14" rx="14" ry="10" fill="#3D2B1F"/>
+<!-- torso seated -->
+<rect x="100" y="42" width="22" height="42" rx="5" fill="#1565C0"/>
+<!-- both arms raised up straight -->
+<line x1="108" y1="44" x2="104" y2="16" stroke="#1565C0" stroke-width="9" stroke-linecap="round"/>
+<line x1="114" y1="44" x2="116" y2="16" stroke="#1565C0" stroke-width="9" stroke-linecap="round"/>
+<!-- forearms bent back (tricep starting position) -->
+<line x1="104" y1="16" x2="98" y2="34" stroke="#D4956A" stroke-width="7" stroke-linecap="round"/>
+<line x1="116" y1="16" x2="122" y2="34" stroke="#D4956A" stroke-width="7" stroke-linecap="round"/>
+<!-- dumbbell overhead -->
+<rect x="100" y="8" width="22" height="8" rx="3" fill="#607D8B"/>
+<rect x="98" y="6" width="6" height="12" rx="2" fill="#455A64"/>
+<rect x="118" y="6" width="6" height="12" rx="2" fill="#455A64"/>
+<!-- extension arrow down behind head -->
+<path d="M126 24 Q134 38 128 44" fill="none" stroke="#F59E0B" stroke-width="2.5"/>
+<polygon points="128,44 122,40 134,38" fill="#F59E0B"/>
+<!-- thighs -->
+<line x1="102" y1="84" x2="80" y2="96" stroke="#37474F" stroke-width="14" stroke-linecap="round"/>
+<line x1="120" y1="84" x2="140" y2="96" stroke="#37474F" stroke-width="14" stroke-linecap="round"/>
+<line x1="80" y1="96" x2="78" y2="118" stroke="#37474F" stroke-width="11" stroke-linecap="round"/>
+<line x1="140" y1="96" x2="142" y2="118" stroke="#37474F" stroke-width="11" stroke-linecap="round"/>
+<rect x="69" y="113" width="16" height="8" rx="4" fill="#3D2B1F"/>
+<rect x="133" y="113" width="16" height="8" rx="4" fill="#3D2B1F"/>
+<text x="12" y="18" font-family="sans-serif" font-size="10" fill="#1a3a5c" font-weight="700">Trizeps Extension</text>
+<text x="12" y="32" font-family="sans-serif" font-size="8.5" fill="#555">Ellenbogen zeigt nach oben · kontrolliert</text>
+</svg>`,
+
+db_lateral: `<svg viewBox="0 0 220 140" xmlns="http://www.w3.org/2000/svg">
+<rect width="220" height="140" fill="${BG.db}" rx="8"/>
+<rect x="0" y="118" width="220" height="22" fill="#BBDEFB"/>
+<!-- head -->
+<ellipse cx="110" cy="24" rx="15" ry="15" fill="#D4956A"/>
+<ellipse cx="110" cy="13" rx="14" ry="9" fill="#3D2B1F"/>
+<!-- torso -->
+<rect x="101" y="40" width="20" height="32" rx="5" fill="#1565C0"/>
+<!-- arms raising out to sides - lateral raise -->
+<line x1="101" y1="52" x2="62" y2="52" stroke="#1565C0" stroke-width="9" stroke-linecap="round"/>
+<line x1="121" y1="52" x2="160" y2="52" stroke="#1565C0" stroke-width="9" stroke-linecap="round"/>
+<ellipse cx="60" cy="52" rx="5" ry="4" fill="#D4956A"/>
+<ellipse cx="162" cy="52" rx="5" ry="4" fill="#D4956A"/>
+<!-- dumbbells at shoulder height -->
+<rect x="42" y="48" width="20" height="7" rx="3" fill="#607D8B"/>
+<rect x="40" y="46" width="5" height="11" rx="2" fill="#455A64"/>
+<rect x="60" y="46" width="5" height="11" rx="2" fill="#455A64"/>
+<rect x="160" y="48" width="20" height="7" rx="3" fill="#607D8B"/>
+<rect x="158" y="46" width="5" height="11" rx="2" fill="#455A64"/>
+<rect x="178" y="46" width="5" height="11" rx="2" fill="#455A64"/>
+<!-- slight downward start position arrows -->
+<text x="42" y="38" font-family="sans-serif" font-size="11" fill="#1565C0">←</text>
+<text x="168" y="38" font-family="sans-serif" font-size="11" fill="#1565C0">→</text>
+<!-- legs -->
+<line x1="106" y1="72" x2="96" y2="118" stroke="#37474F" stroke-width="12" stroke-linecap="round"/>
+<line x1="114" y1="72" x2="124" y2="118" stroke="#37474F" stroke-width="12" stroke-linecap="round"/>
+<rect x="87" y="113" width="17" height="8" rx="4" fill="#3D2B1F"/>
+<rect x="115" y="113" width="17" height="8" rx="4" fill="#3D2B1F"/>
+<text x="12" y="18" font-family="sans-serif" font-size="10" fill="#1a3a5c" font-weight="700">Seitheben</text>
+<text x="12" y="32" font-family="sans-serif" font-size="8.5" fill="#555">Arme seitlich auf Schulterhöhe · kontrolliert</text>
+</svg>`,
+
+foam_it: `<svg viewBox="0 0 220 140" xmlns="http://www.w3.org/2000/svg">
+<rect width="220" height="140" fill="${BG.foam}" rx="8"/>
+<rect x="0" y="112" width="220" height="28" fill="#E1BEE7"/>
+<line x1="10" y1="113" x2="210" y2="113" stroke="#CE93D8" stroke-width="1.5"/>
+<!-- foam roller -->
+<rect x="30" y="100" width="130" height="18" rx="9" fill="#9B6BB5"/>
+<rect x="30" y="100" width="130" height="7" rx="7" fill="#B39DDB" opacity=".5"/>
+<!-- body lying on side - IT band position -->
+<!-- head -->
+<ellipse cx="26" cy="74" rx="14" ry="15" fill="#D4956A"/>
+<ellipse cx="24" cy="63" rx="13" ry="9" fill="#3D2B1F"/>
+<!-- torso on side -->
+<path d="M38 80 Q70 75 110 72 Q140 70 165 72" stroke="#7B1FA2" stroke-width="14" fill="none" stroke-linecap="round"/>
+<!-- supporting arm (top arm) propped up -->
+<line x1="95" y1="70" x2="95" y2="45" stroke="#7B1FA2" stroke-width="8" stroke-linecap="round"/>
+<ellipse cx="95" cy="43" rx="5" ry="4" fill="#D4956A"/>
+<!-- bottom arm on floor -->
+<line x1="36" y1="80" x2="16" y2="90" stroke="#7B1FA2" stroke-width="8" stroke-linecap="round"/>
+<ellipse cx="14" cy="91" rx="5" ry="4" fill="#D4956A"/>
+<!-- bottom leg (on roller) -->
+<line x1="160" y1="74" x2="196" y2="80" stroke="#4A148C" stroke-width="14" stroke-linecap="round"/>
+<line x1="196" y1="80" x2="208" y2="108" stroke="#4A148C" stroke-width="12" stroke-linecap="round"/>
+<!-- top leg bent for stability -->
+<line x1="155" y1="72" x2="185" y2="62" stroke="#4A148C" stroke-width="12" stroke-linecap="round"/>
+<line x1="185" y1="62" x2="196" y2="86" stroke="#4A148C" stroke-width="11" stroke-linecap="round"/>
+<!-- pressure point indicator -->
+<circle cx="178" cy="84" r="6" fill="none" stroke="#F59E0B" stroke-width="2.5"/>
+<text x="12" y="18" font-family="sans-serif" font-size="11" fill="#6a1b9a" font-weight="700">IT-Band Release</text>
+<text x="12" y="32" font-family="sans-serif" font-size="8.5" fill="#555">Seitlich auf Rolle · Druckpunkte halten</text>
+</svg>`,
+
+foam_back: `<svg viewBox="0 0 220 140" xmlns="http://www.w3.org/2000/svg">
+<rect width="220" height="140" fill="${BG.foam}" rx="8"/>
+<rect x="0" y="112" width="220" height="28" fill="#E1BEE7"/>
+<line x1="10" y1="113" x2="210" y2="113" stroke="#CE93D8" stroke-width="1.5"/>
+<!-- foam roller under upper back -->
+<rect x="50" y="96" width="120" height="18" rx="9" fill="#9B6BB5"/>
+<rect x="50" y="96" width="120" height="7" rx="7" fill="#B39DDB" opacity=".5"/>
+<!-- head left side -->
+<ellipse cx="22" cy="80" rx="14" ry="15" fill="#D4956A"/>
+<ellipse cx="20" cy="69" rx="13" ry="9" fill="#3D2B1F"/>
+<!-- body lying on back, chest over roller -->
+<path d="M34 84 Q65 82 100 85 Q120 86 140 88" stroke="#7B1FA2" stroke-width="14" fill="none" stroke-linecap="round"/>
+<!-- arms crossed over chest (NOT behind head) -->
+<line x1="80" y1="82" x2="65" y2="70" stroke="#7B1FA2" stroke-width="8" stroke-linecap="round"/>
+<line x1="90" y1="80" x2="108" y2="70" stroke="#7B1FA2" stroke-width="8" stroke-linecap="round"/>
+<ellipse cx="62" cy="69" rx="6" ry="5" fill="#D4956A"/>
+<ellipse cx="110" cy="69" rx="6" ry="5" fill="#D4956A"/>
+<!-- X showing arms crossed -->
+<!-- legs bent, feet flat (knees up for support) -->
+<line x1="140" y1="88" x2="158" y2="112" stroke="#4A148C" stroke-width="13" stroke-linecap="round"/>
+<line x1="152" y1="88" x2="175" y2="108" stroke="#4A148C" stroke-width="13" stroke-linecap="round"/>
+<!-- feet -->
+<rect x="148" y="108" width="18" height="8" rx="4" fill="#3D2B1F"/>
+<rect x="165" y="104" width="18" height="8" rx="4" fill="#3D2B1F"/>
+<!-- warning: no neck -->
+<text x="8" y="130" font-family="sans-serif" font-size="7.5" fill="#c62828" font-weight="700">🔴 Nicht über Nacken rollen!</text>
+<text x="12" y="18" font-family="sans-serif" font-size="11" fill="#6a1b9a" font-weight="700">Rücken Release</text>
+<text x="12" y="32" font-family="sans-serif" font-size="8.5" fill="#555">Arme über Brust gekreuzt · langsam</text>
+</svg>`,
+
+foam_glute: `<svg viewBox="0 0 220 140" xmlns="http://www.w3.org/2000/svg">
+<rect width="220" height="140" fill="${BG.foam}" rx="8"/>
+<rect x="0" y="112" width="220" height="28" fill="#E1BEE7"/>
+<line x1="10" y1="113" x2="210" y2="113" stroke="#CE93D8" stroke-width="1.5"/>
+<!-- foam roller under glutes -->
+<rect x="65" y="100" width="70" height="16" rx="8" fill="#9B6BB5"/>
+<rect x="65" y="100" width="70" height="6" rx="6" fill="#B39DDB" opacity=".5"/>
+<!-- person sitting on roller -->
+<!-- head -->
+<ellipse cx="100" cy="36" rx="14" ry="15" fill="#D4956A"/>
+<ellipse cx="100" cy="24" rx="13" ry="9" fill="#3D2B1F"/>
+<path d="M112 26 Q120 21 118 33" stroke="#3D2B1F" stroke-width="4" fill="none" stroke-linecap="round"/>
+<!-- torso upright sitting on roller -->
+<rect x="91" y="52" width="20" height="42" rx="5" fill="#7B1FA2"/>
+<!-- one leg crossed over (ankle on opposite knee) -->
+<line x1="95" y1="94" x2="68" y2="100" stroke="#4A148C" stroke-width="12" stroke-linecap="round"/>
+<line x1="68" y1="100" x2="55" y2="80" stroke="#4A148C" stroke-width="10" stroke-linecap="round"/>
+<!-- other leg - foot on floor -->
+<line x1="107" y1="94" x2="140" y2="100" stroke="#4A148C" stroke-width="12" stroke-linecap="round"/>
+<line x1="140" y1="100" x2="148" y2="112" stroke="#4A148C" stroke-width="10" stroke-linecap="round"/>
+<rect x="138" y="108" width="18" height="8" rx="4" fill="#3D2B1F"/>
+<!-- arms supporting behind -->
+<line x1="95" y1="68" x2="72" y2="80" stroke="#7B1FA2" stroke-width="8" stroke-linecap="round"/>
+<ellipse cx="70" cy="82" rx="5" ry="4" fill="#D4956A"/>
+<line x1="107" y1="68" x2="130" y2="80" stroke="#7B1FA2" stroke-width="8" stroke-linecap="round"/>
+<ellipse cx="132" cy="82" rx="5" ry="4" fill="#D4956A"/>
+<!-- pressure indicator -->
+<circle cx="100" cy="102" r="7" fill="none" stroke="#F59E0B" stroke-width="2.5"/>
+<text x="12" y="18" font-family="sans-serif" font-size="11" fill="#6a1b9a" font-weight="700">Po-Massage</text>
+<text x="12" y="32" font-family="sans-serif" font-size="8.5" fill="#555">Sitzen auf Rolle · Piriformis lösen</text>
+</svg>`,
+
+foam_calf: `<svg viewBox="0 0 220 140" xmlns="http://www.w3.org/2000/svg">
+<rect width="220" height="140" fill="${BG.foam}" rx="8"/>
+<rect x="0" y="112" width="220" height="28" fill="#E1BEE7"/>
+<line x1="10" y1="113" x2="210" y2="113" stroke="#CE93D8" stroke-width="1.5"/>
+<!-- foam roller under calves -->
+<rect x="110" y="98" width="80" height="16" rx="8" fill="#9B6BB5"/>
+<rect x="110" y="98" width="80" height="6" rx="6" fill="#B39DDB" opacity=".5"/>
+<!-- person sitting, hands behind propping up -->
+<!-- head left -->
+<ellipse cx="22" cy="60" rx="14" ry="15" fill="#D4956A"/>
+<ellipse cx="21" cy="48" rx="13" ry="9" fill="#3D2B1F"/>
+<!-- torso slightly reclined -->
+<path d="M34 68 Q55 65 75 68 Q85 70 90 78" stroke="#7B1FA2" stroke-width="14" fill="none" stroke-linecap="round"/>
+<!-- arms behind supporting -->
+<line x1="38" y1="72" x2="24" y2="88" stroke="#7B1FA2" stroke-width="8" stroke-linecap="round"/>
+<ellipse cx="22" cy="90" rx="6" ry="5" fill="#D4956A"/>
+<line x1="52" y1="68" x2="50" y2="92" stroke="#7B1FA2" stroke-width="8" stroke-linecap="round"/>
+<ellipse cx="50" cy="94" rx="6" ry="5" fill="#D4956A"/>
+<!-- legs straight out - calves on roller -->
+<line x1="90" y1="80" x2="148" y2="104" stroke="#4A148C" stroke-width="14" stroke-linecap="round"/>
+<line x1="102" y1="80" x2="162" y2="106" stroke="#4A148C" stroke-width="14" stroke-linecap="round"/>
+<!-- feet -->
+<ellipse cx="185" cy="105" rx="9" ry="6" fill="#3D2B1F"/>
+<ellipse cx="196" cy="107" rx="9" ry="6" fill="#3D2B1F"/>
+<!-- up/down roll arrow -->
+<text x="115" y="92" font-family="sans-serif" font-size="10" fill="#F59E0B">↔</text>
+<text x="12" y="18" font-family="sans-serif" font-size="11" fill="#6a1b9a" font-weight="700">Wade ausrollen</text>
+<text x="12" y="32" font-family="sans-serif" font-size="8.5" fill="#555">Hände abstützen · langsam rollen</text>
+</svg>`,
+
+foam_quad: `<svg viewBox="0 0 220 140" xmlns="http://www.w3.org/2000/svg">
+<rect width="220" height="140" fill="${BG.foam}" rx="8"/>
+<rect x="0" y="112" width="220" height="28" fill="#E1BEE7"/>
+<line x1="10" y1="113" x2="210" y2="113" stroke="#CE93D8" stroke-width="1.5"/>
+<!-- foam roller under quads -->
+<rect x="55" y="100" width="110" height="16" rx="8" fill="#9B6BB5"/>
+<rect x="55" y="100" width="110" height="6" rx="6" fill="#B39DDB" opacity=".5"/>
+<!-- person face down, forearms on floor -->
+<!-- head right side up -->
+<ellipse cx="192" cy="72" rx="14" ry="14" fill="#D4956A"/>
+<ellipse cx="192" cy="60" rx="13" ry="9" fill="#3D2B1F"/>
+<!-- body prone (face down) -->
+<path d="M45 100 Q80 90 120 86 Q155 84 178 80" stroke="#7B1FA2" stroke-width="13" fill="none" stroke-linecap="round"/>
+<!-- forearms supporting -->
+<line x1="175" y1="84" x2="188" y2="108" stroke="#7B1FA2" stroke-width="8" stroke-linecap="round"/>
+<rect x="178" y="106" width="22" height="6" rx="3" fill="#D4956A"/>
+<line x1="155" y1="86" x2="155" y2="112" stroke="#7B1FA2" stroke-width="8" stroke-linecap="round"/>
+<ellipse cx="155" cy="113" rx="6" ry="4" fill="#D4956A"/>
+<!-- legs back -->
+<line x1="45" y1="100" x2="28" y2="112" stroke="#4A148C" stroke-width="13" stroke-linecap="round"/>
+<line x1="55" y1="100" x2="42" y2="112" stroke="#4A148C" stroke-width="13" stroke-linecap="round"/>
+<!-- pressure indicator on thigh -->
+<circle cx="90" cy="98" r="7" fill="none" stroke="#F59E0B" stroke-width="2.5"/>
+<text x="110" y="95" font-family="sans-serif" font-size="9" fill="#F59E0B">↔</text>
+<text x="12" y="18" font-family="sans-serif" font-size="11" fill="#6a1b9a" font-weight="700">Oberschenkel ausrollen</text>
+<text x="12" y="32" font-family="sans-serif" font-size="8.5" fill="#555">Auf Unterarmen stützen · langsam</text>
+</svg>`,
+
+bike_steady: `<svg viewBox="0 0 220 140" xmlns="http://www.w3.org/2000/svg">
+<rect width="220" height="140" fill="${BG.bike}" rx="8"/>
+<!-- stationary bike frame -->
+<!-- back wheel -->
+<ellipse cx="58" cy="108" rx="28" ry="28" stroke="#455A64" stroke-width="4" fill="none"/>
+<ellipse cx="58" cy="108" rx="4" ry="4" fill="#455A64"/>
+<!-- front wheel -->
+<ellipse cx="162" cy="108" rx="28" ry="28" stroke="#455A64" stroke-width="4" fill="none"/>
+<ellipse cx="162" cy="108" rx="4" ry="4" fill="#455A64"/>
+<!-- spokes -->
+<line x1="58" y1="80" x2="58" y2="136" stroke="#607D8B" stroke-width="1.5" opacity=".6"/>
+<line x1="30" y1="108" x2="86" y2="108" stroke="#607D8B" stroke-width="1.5" opacity=".6"/>
+<line x1="38" y1="88" x2="78" y2="128" stroke="#607D8B" stroke-width="1.5" opacity=".6"/>
+<line x1="38" y1="128" x2="78" y2="88" stroke="#607D8B" stroke-width="1.5" opacity=".6"/>
+<line x1="162" y1="80" x2="162" y2="136" stroke="#607D8B" stroke-width="1.5" opacity=".6"/>
+<line x1="134" y1="108" x2="190" y2="108" stroke="#607D8B" stroke-width="1.5" opacity=".6"/>
+<!-- frame -->
+<line x1="58" y1="108" x2="110" y2="72" stroke="#455A64" stroke-width="5"/>
+<line x1="162" y1="108" x2="110" y2="72" stroke="#455A64" stroke-width="5"/>
+<line x1="110" y1="72" x2="90" y2="108" stroke="#455A64" stroke-width="4"/>
+<!-- seat post + seat -->
+<line x1="110" y1="72" x2="108" y2="48" stroke="#455A64" stroke-width="5"/>
+<rect x="94" y="44" width="28" height="7" rx="3" fill="#37474F"/>
+<!-- handlebar -->
+<line x1="110" y1="72" x2="140" y2="52" stroke="#455A64" stroke-width="4"/>
+<rect x="135" y="46" width="20" height="5" rx="2" fill="#37474F"/>
+<!-- pedals -->
+<ellipse cx="110" cy="84" rx="8" ry="8" stroke="#607D8B" stroke-width="3" fill="none"/>
+<rect x="102" y="90" width="16" height="5" rx="2" fill="#607D8B"/>
+<!-- PERSON on bike -->
+<!-- head -->
+<ellipse cx="148" cy="28" rx="14" ry="15" fill="#D4956A"/>
+<ellipse cx="148" cy="16" rx="13" ry="9" fill="#3D2B1F"/>
+<!-- torso leaning forward -->
+<path d="M140 44 Q145 42 152 44 Q155 48 152 62" stroke="#00695C" stroke-width="14" fill="none" stroke-linecap="round"/>
+<!-- arms reaching handlebar -->
+<line x1="142" y1="52" x2="148" y2="50" stroke="#00695C" stroke-width="8" stroke-linecap="round"/>
+<ellipse cx="150" cy="50" rx="5" ry="4" fill="#D4956A"/>
+<!-- thigh down to pedal -->
+<line x1="148" y1="64" x2="118" y2="82" stroke="#37474F" stroke-width="12" stroke-linecap="round"/>
+<line x1="118" y1="82" x2="112" y2="96" stroke="#37474F" stroke-width="10" stroke-linecap="round"/>
+<!-- pedal foot -->
+<rect x="104" y="92" width="20" height="8" rx="3" fill="#3D2B1F"/>
+<text x="8" y="18" font-family="sans-serif" font-size="11" fill="#00695c" font-weight="700">Ruhiges Fahren</text>
+<text x="8" y="32" font-family="sans-serif" font-size="8.5" fill="#555">Gleichmäßig · mittlerer Widerstand</text>
+</svg>`,
+
+bike_interval: `<svg viewBox="0 0 220 140" xmlns="http://www.w3.org/2000/svg">
+<rect width="220" height="140" fill="${BG.bike}" rx="8"/>
+<!-- bike frame same as above -->
+<ellipse cx="58" cy="108" rx="28" ry="28" stroke="#455A64" stroke-width="4" fill="none"/>
+<ellipse cx="58" cy="108" rx="4" ry="4" fill="#455A64"/>
+<ellipse cx="162" cy="108" rx="28" ry="28" stroke="#455A64" stroke-width="4" fill="none"/>
+<ellipse cx="162" cy="108" rx="4" ry="4" fill="#455A64"/>
+<line x1="58" y1="108" x2="110" y2="72" stroke="#455A64" stroke-width="5"/>
+<line x1="162" y1="108" x2="110" y2="72" stroke="#455A64" stroke-width="5"/>
+<line x1="110" y1="72" x2="90" y2="108" stroke="#455A64" stroke-width="4"/>
+<line x1="110" y1="72" x2="108" y2="48" stroke="#455A64" stroke-width="5"/>
+<rect x="94" y="44" width="28" height="7" rx="3" fill="#37474F"/>
+<line x1="110" y1="72" x2="140" y2="52" stroke="#455A64" stroke-width="4"/>
+<rect x="135" y="46" width="20" height="5" rx="2" fill="#37474F"/>
+<ellipse cx="110" cy="84" rx="8" ry="8" stroke="#607D8B" stroke-width="3" fill="none"/>
+<rect x="102" y="90" width="16" height="5" rx="2" fill="#607D8B"/>
+<!-- person leaning more forward (sprint position) -->
+<ellipse cx="152" cy="24" rx="14" ry="14" fill="#D4956A"/>
+<ellipse cx="152" cy="13" rx="13" ry="9" fill="#3D2B1F"/>
+<!-- very forward lean -->
+<path d="M144 40 Q148 36 155 38 Q160 42 158 56" stroke="#004D40" stroke-width="14" fill="none" stroke-linecap="round"/>
+<line x1="145" y1="46" x2="150" y2="50" stroke="#004D40" stroke-width="8" stroke-linecap="round"/>
+<ellipse cx="152" cy="51" rx="5" ry="4" fill="#D4956A"/>
+<line x1="154" y1="58" x2="124" y2="78" stroke="#37474F" stroke-width="12" stroke-linecap="round"/>
+<line x1="124" y1="78" x2="116" y2="94" stroke="#37474F" stroke-width="10" stroke-linecap="round"/>
+<rect x="108" y="90" width="20" height="8" rx="3" fill="#3D2B1F"/>
+<!-- speed lines -->
+<line x1="8" y1="55" x2="30" y2="55" stroke="#F59E0B" stroke-width="2.5" opacity=".8"/>
+<line x1="12" y1="65" x2="28" y2="65" stroke="#F59E0B" stroke-width="2" opacity=".6"/>
+<line x1="6" y1="75" x2="22" y2="75" stroke="#F59E0B" stroke-width="1.5" opacity=".4"/>
+<!-- interval indicator -->
+<rect x="8" y="8" width="55" height="18" rx="4" fill="#004D40" opacity=".85"/>
+<text x="13" y="20" font-family="sans-serif" font-size="8" fill="#fff" font-weight="700">SPRINT! 💨</text>
+<text x="70" y="18" font-family="sans-serif" font-size="10" fill="#00695c" font-weight="700">Intervall</text>
+<text x="70" y="32" font-family="sans-serif" font-size="8.5" fill="#555">1 Min schnell · 1 Min erholen</text>
+</svg>`,
+
+bike_warmup: `<svg viewBox="0 0 220 140" xmlns="http://www.w3.org/2000/svg">
+<rect width="220" height="140" fill="${BG.bike}" rx="8"/>
+<ellipse cx="58" cy="108" rx="28" ry="28" stroke="#455A64" stroke-width="4" fill="none"/>
+<ellipse cx="58" cy="108" rx="4" ry="4" fill="#455A64"/>
+<ellipse cx="162" cy="108" rx="28" ry="28" stroke="#455A64" stroke-width="4" fill="none"/>
+<ellipse cx="162" cy="108" rx="4" ry="4" fill="#455A64"/>
+<line x1="58" y1="108" x2="110" y2="72" stroke="#455A64" stroke-width="5"/>
+<line x1="162" y1="108" x2="110" y2="72" stroke="#455A64" stroke-width="5"/>
+<line x1="110" y1="72" x2="90" y2="108" stroke="#455A64" stroke-width="4"/>
+<line x1="110" y1="72" x2="108" y2="48" stroke="#455A64" stroke-width="5"/>
+<rect x="94" y="44" width="28" height="7" rx="3" fill="#37474F"/>
+<line x1="110" y1="72" x2="140" y2="52" stroke="#455A64" stroke-width="4"/>
+<rect x="135" y="46" width="20" height="5" rx="2" fill="#37474F"/>
+<ellipse cx="110" cy="84" rx="8" ry="8" stroke="#607D8B" stroke-width="3" fill="none"/>
+<!-- relaxed upright position -->
+<ellipse cx="148" cy="30" rx="14" ry="15" fill="#D4956A"/>
+<ellipse cx="148" cy="18" rx="13" ry="9" fill="#3D2B1F"/>
+<!-- more upright relaxed posture -->
+<path d="M140 46 Q146 44 153 46 Q156 52 154 64" stroke="#00897B" stroke-width="14" fill="none" stroke-linecap="round"/>
+<line x1="142" y1="54" x2="148" y2="52" stroke="#00897B" stroke-width="8" stroke-linecap="round"/>
+<ellipse cx="150" cy="52" rx="5" ry="4" fill="#D4956A"/>
+<line x1="150" y1="66" x2="120" y2="84" stroke="#37474F" stroke-width="12" stroke-linecap="round"/>
+<line x1="120" y1="84" x2="114" y2="96" stroke="#37474F" stroke-width="10" stroke-linecap="round"/>
+<rect x="106" y="92" width="20" height="8" rx="3" fill="#3D2B1F"/>
+<!-- gentle warmup indicator -->
+<text x="8" y="18" font-family="sans-serif" font-size="11" fill="#00695c" font-weight="700">Aufwärm-Fahrt</text>
+<text x="8" y="32" font-family="sans-serif" font-size="8.5" fill="#555">Locker einfahren · 10 Min</text>
+<text x="8" y="130" font-family="sans-serif" font-size="8" fill="#00897B">🌡️ Körper langsam aufwärmen</text>
+</svg>`,
+
+bike_hills: `<svg viewBox="0 0 220 140" xmlns="http://www.w3.org/2000/svg">
+<rect width="220" height="140" fill="${BG.bike}" rx="8"/>
+<ellipse cx="58" cy="108" rx="28" ry="28" stroke="#455A64" stroke-width="4" fill="none"/>
+<ellipse cx="58" cy="108" rx="4" ry="4" fill="#455A64"/>
+<ellipse cx="162" cy="108" rx="28" ry="28" stroke="#455A64" stroke-width="4" fill="none"/>
+<ellipse cx="162" cy="108" rx="4" ry="4" fill="#455A64"/>
+<line x1="58" y1="108" x2="110" y2="72" stroke="#455A64" stroke-width="5"/>
+<line x1="162" y1="108" x2="110" y2="72" stroke="#455A64" stroke-width="5"/>
+<line x1="110" y1="72" x2="90" y2="108" stroke="#455A64" stroke-width="4"/>
+<line x1="110" y1="72" x2="108" y2="48" stroke="#455A64" stroke-width="5"/>
+<rect x="94" y="44" width="28" height="7" rx="3" fill="#37474F"/>
+<line x1="110" y1="72" x2="140" y2="52" stroke="#455A64" stroke-width="4"/>
+<rect x="135" y="46" width="20" height="5" rx="2" fill="#37474F"/>
+<ellipse cx="110" cy="84" rx="8" ry="8" stroke="#607D8B" stroke-width="3" fill="none"/>
+<!-- standing on pedals (out of saddle - hills position) -->
+<ellipse cx="150" cy="22" rx="14" ry="14" fill="#D4956A"/>
+<ellipse cx="150" cy="11" rx="13" ry="9" fill="#3D2B1F"/>
+<!-- lifted off seat, bent forward more -->
+<path d="M142 38 Q147 34 154 36 Q158 40 155 52" stroke="#263238" stroke-width="13" fill="none" stroke-linecap="round"/>
+<line x1="143" y1="44" x2="150" y2="50" stroke="#263238" stroke-width="8" stroke-linecap="round"/>
+<ellipse cx="152" cy="51" rx="5" ry="4" fill="#D4956A"/>
+<!-- leg driving down powerfully -->
+<line x1="152" y1="54" x2="126" y2="74" stroke="#37474F" stroke-width="13" stroke-linecap="round"/>
+<line x1="126" y1="74" x2="118" y2="90" stroke="#37474F" stroke-width="11" stroke-linecap="round"/>
+<rect x="110" y="86" width="20" height="9" rx="4" fill="#263238"/>
+<!-- effort indicators -->
+<text x="8" y="18" font-family="sans-serif" font-size="11" fill="#00695c" font-weight="700">Hügelsimulation</text>
+<text x="8" y="32" font-family="sans-serif" font-size="8.5" fill="#555">Hoher Widerstand · 2 Min durchhalten</text>
+<!-- resistance dial icon -->
+<circle cx="200" cy="60" r="12" fill="#004D40" opacity=".8"/>
+<text x="194" y="64" font-family="sans-serif" font-size="9" fill="#fff" font-weight="700">↑R</text>
+</svg>`,
+
+};
+// Fallback for any missing SVG
+function getExSVG(id){ return EXERCISE_SVGS[id] || EXERCISE_SVGS['pushup']; }
+
+// ═══════════ EXERCISE DATABASE ═══════════
+const EXERCISES=[
+  // BODYWEIGHT
+  {id:'pushup',    cat:'body',     name:'Liegestütze',          sets:'3×10–12',          muscle:'Brust, Trizeps, Core',              mod:false, tip:'Knie aufsetzen als leichtere Variante. Körper Brett-gerade halten.',icon:'💪', svg:getExSVG('pushup')},
+  {id:'glute',     cat:'body',     name:'Glute Bridge',         sets:'3×15',             muscle:'Po, Hüfte, Core',                   mod:false, tip:'Auf dem Rücken, Füße hüftbreit, Po zur Decke heben und 2s halten.',icon:'🍑', svg:getExSVG('glute')},
+  {id:'plank',     cat:'body',     name:'Unterarm-Plank',       sets:'3×20–40s',         muscle:'Core, Schultern',                   mod:false, tip:'Auf Unterarmen stützen, Blick zum Boden — kein Nacken!',icon:'🧱', svg:getExSVG('plank')},
+  {id:'squat',     cat:'body',     name:'Squat (modifiziert)',  sets:'3×12',             muscle:'Beine, Po',                         mod:true,  tip:'Nur bis 90° — kein tiefes Kniebeugen. Knie zeigen nach vorne.',icon:'🦵', svg:getExSVG('squat')},
+  {id:'deadbug',   cat:'body',     name:'Dead Bug',             sets:'3×8/Seite',        muscle:'Core, Hüftbeuger',                  mod:false, tip:'Rücken bleibt am Boden. Arm und Gegenbein gleichzeitig strecken.',icon:'🐛', svg:getExSVG('deadbug')},
+  {id:'step',      cat:'body',     name:'Step-Ups',             sets:'3×10/Bein',        muscle:'Beine, Po, Balance',                mod:true,  tip:'Treppenstufe nutzen. Kein tiefes Absenken nötig.',icon:'🪜', svg:getExSVG('step')},
+  {id:'hipcircle', cat:'body',     name:'Hip Circles',          sets:'2×10/Seite',       muscle:'Hüfte, Po, Mobilität',              mod:false, tip:'Stehend große Kreise mit der Hüfte drehen — beide Richtungen.',icon:'🔄', svg:getExSVG('hipcircle')},
+  {id:'wallsit',   cat:'body',     name:'Wandsitzen',           sets:'3×30–45s',         muscle:'Oberschenkel, Po, Ausdauer',        mod:true,  tip:'Rücken an Wand anlehnen, Knie max 90°, Position halten.',icon:'🧲', svg:getExSVG('wallsit')},
+  {id:'sideplank', cat:'body',     name:'Seitstütz',            sets:'3×20–30s/Seite',   muscle:'Seitliche Core, Hüfte',             mod:false, tip:'Auf Unterarm stützen, Hüfte oben halten, gerade Linie.',icon:'📐', svg:getExSVG('sideplank')},
+  // BAND
+  {id:'band_row',      cat:'band', name:'Band Row',             sets:'3×12',             muscle:'Rücken, Bizeps',                    mod:false, tip:'Band um Türklinke, leichte Kniebeuge, Ellenbogen nach hinten.',icon:'🟡', svg:getExSVG('band_row')},
+  {id:'band_press',    cat:'band', name:'Band Chest Press',     sets:'3×12',             muscle:'Brust, Schulter, Trizeps',          mod:false, tip:'Band hinter dem Rücken oder an der Tür, gerade nach vorne drücken.',icon:'🟡', svg:getExSVG('band_press')},
+  {id:'band_glute',    cat:'band', name:'Band Kickback',        sets:'3×15/Seite',       muscle:'Po, Hüfte',                         mod:false, tip:'Band um Knöchel, auf Händen und Knien, Bein nach hinten-oben strecken.',icon:'🟡', svg:getExSVG('band_glute')},
+  {id:'band_lat',      cat:'band', name:'Lateral Walk',         sets:'3×10 Schritte',    muscle:'Hüfte, Außenoberschenkel',          mod:false, tip:'Band um Knöchel, leichte Kniebeuge, seitwärts schreiten — Band bleibt gespannt.',icon:'🟡', svg:getExSVG('band_lat')},
+  {id:'band_shoulder', cat:'band', name:'Schulterrotation',     sets:'3×12/Seite',       muscle:'Rotatorenmanschette, Schulterblatt',mod:false, tip:'Ellenbogen 90° am Körper, Unterarm nach außen rotieren.',icon:'🟡', svg:getExSVG('band_shoulder')},
+  // DUMBBELL
+  {id:'db_curl',    cat:'dumbbell', name:'Bizeps Curl',         sets:'3×12',             muscle:'Bizeps, Unterarm',                  mod:false, tip:'Ellenbogen fixiert am Körper, kontrolliert heben und senken.',icon:'🏋️', svg:getExSVG('db_curl')},
+  {id:'db_press',   cat:'dumbbell', name:'Schulterdrücken',     sets:'3×10',             muscle:'Schultern, Trizeps',                mod:false, tip:'Sitzend, Hanteln auf Schulterhöhe starten, kontrolliert nach oben.',icon:'🏋️', svg:getExSVG('db_press')},
+  {id:'db_rdl',     cat:'dumbbell', name:'Romanian Deadlift',   sets:'3×10',             muscle:'Hintere Oberschenkel, Po, Rücken',  mod:false, tip:'Hanteln nahe am Körper führen, Hüfte zurück schieben, Rücken gerade.',icon:'🏋️', svg:getExSVG('db_rdl')},
+  {id:'db_lunge',   cat:'dumbbell', name:'Ausfallschritt',      sets:'3×8/Seite',        muscle:'Beine, Po, Balance',                mod:true,  tip:'Max 90° vorderes Knie. Hanteln seitlich halten.',icon:'🏋️', svg:getExSVG('db_lunge')},
+  {id:'db_tricep',  cat:'dumbbell', name:'Trizeps Extension',   sets:'3×12',             muscle:'Trizeps',                           mod:false, tip:'Sitzend, Hantel über Kopf, Ellenbogen zeigt nach oben — Nacken entspannt.',icon:'🏋️', svg:getExSVG('db_tricep')},
+  {id:'db_lateral', cat:'dumbbell', name:'Seitheben',           sets:'3×12',             muscle:'Seitliche Schultern, Trapez',       mod:false, tip:'Arme seitlich bis Schulterhöhe heben — nicht schwingen.',icon:'🏋️', svg:getExSVG('db_lateral')},
+  // FOAM ROLLER
+  {id:'foam_it',    cat:'foam', name:'IT-Band Release',         sets:'1×60s/Seite',      muscle:'Außenoberschenkel',                 mod:false, tip:'Seitlich auf Rolle — langsam rollen, an Druckpunkten kurz pausieren.',icon:'🔵', svg:getExSVG('foam_it')},
+  {id:'foam_back',  cat:'foam', name:'Rücken Release',          sets:'1×90s',            muscle:'Rückenstrecker, mittlerer Rücken',  mod:false, tip:'Arme VOR Brust kreuzen — NICHT über Nacken rollen!',icon:'🔵', svg:getExSVG('foam_back')},
+  {id:'foam_glute', cat:'foam', name:'Po-Massage',              sets:'1×60s/Seite',      muscle:'Gluteus, Piriformis',               mod:false, tip:'Sitzen auf Rolle, ein Bein überkreuzt — Piriformis lösen.',icon:'🔵', svg:getExSVG('foam_glute')},
+  {id:'foam_calf',  cat:'foam', name:'Wade ausrollen',          sets:'1×60s/Seite',      muscle:'Waden, Achillessehne',              mod:false, tip:'Waden auf Rolle, Hände abstützen, langsam rollen.',icon:'🔵', svg:getExSVG('foam_calf')},
+  {id:'foam_quad',  cat:'foam', name:'Oberschenkel ausrollen',  sets:'1×60s/Seite',      muscle:'Quadrizeps, vorderer Oberschenkel', mod:false, tip:'Face-down auf Unterarmen, Oberschenkel auf Rolle, langsam rollen.',icon:'🔵', svg:getExSVG('foam_quad')},
+  // BIKE
+  {id:'bike_warmup',  cat:'bike', name:'Aufwärm-Fahrt',        sets:'10 Min',           muscle:'Durchblutung, Mobilität',           mod:false, tip:'Locker einfahren vor dem Workout — Körper aufwärmen.',icon:'🚲', svg:getExSVG('bike_warmup')},
+  {id:'bike_steady',  cat:'bike', name:'Ruhiges Fahren',       sets:'15–30 Min',        muscle:'Ausdauer, Beine, Herz-Kreislauf',   mod:false, tip:'Gleichmäßiges Tempo, mittlerer Widerstand — perfekt für Fettverbrennung.',icon:'🚲', svg:getExSVG('bike_steady')},
+  {id:'bike_interval',cat:'bike', name:'Intervalltraining',    sets:'8× (1 Min+ 1 Min)',muscle:'Ausdauer, Fettverbrennung',          mod:false, tip:'1 Min Gas geben, 1 Min erholen — effektives Cardio ohne Gelenkbelastung.',icon:'🚲', svg:getExSVG('bike_interval')},
+  {id:'bike_hills',   cat:'bike', name:'Hügelsimulation',      sets:'5× 2 Min',         muscle:'Kraft, Ausdauer, Po, Beine',        mod:false, tip:'Hoher Widerstand 2 Min durchhalten, dann 2 Min leicht erholen.',icon:'🚲', svg:getExSVG('bike_hills')},
+];
+
+// ═══════════ STATE ═══════════
+const DAYS_DE=['Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag','Sonntag'];
+const DAYS_SHORT=['Mo','Di','Mi','Do','Fr','Sa','So'];
+const HOURS_START=6,HOURS_END=23,SLOT_MINS=30;
+const TIME_WINDOWS={morning:[6,10],midday:[11,14],afternoon:[14,18],evening:[18,22]};
+
+let currentWeekStart=getWeekStart(new Date());
+let appState={},prefs={},personalData={},cycleData={},waterData={},weightLog=[];
+let selectedExercises=[],currentCat='all';
+let waterInterval=null,notifGranted=false,editingDay=null;
+
+function getWeekStart(d){const day=d.getDay(),diff=day===0?-6:1-day,m=new Date(d);m.setDate(d.getDate()+diff);m.setHours(0,0,0,0);return m;}
+function weekKey(d){return d.toISOString().slice(0,10);}
+function weekDateFor(i){const d=new Date(currentWeekStart);d.setDate(d.getDate()+i);return d;}
+function formatWeekLabel(d){const e=new Date(d);e.setDate(e.getDate()+6);return`${d.getDate()}.${d.getMonth()+1} – ${e.getDate()}.${e.getMonth()+1}.${e.getFullYear()}`;}
+function todayKey(){return new Date().toISOString().slice(0,10);}
+function isSameDay(a,b){return a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate();}
+
+function getWeekData(){const k=weekKey(currentWeekStart);if(!appState[k])appState[k]={work:Array(7).fill(null).map(()=>[]),events:Array(7).fill(null).map(()=>[]),notes:'',workouts:{}};if(!appState[k].workouts)appState[k].workouts={};return appState[k];}
+function defaultPrefs(){return{fitBaseDuration:10,fitStepMin:10,fitTime:'afternoon',fitStartDate:'',homeHours:6,homeMaxBlocks:1,homeTime:'morning',meHours:5,meTime:'evening',meMinBlock:60,sleepStart:'22:30',wakeUp:'06:30',waterGoal:8};}
+
+function saveAll(){try{localStorage.setItem('ptm3_state',JSON.stringify(appState));localStorage.setItem('ptm3_prefs',JSON.stringify(prefs));localStorage.setItem('ptm3_personal',JSON.stringify(personalData));localStorage.setItem('ptm3_cycle',JSON.stringify(cycleData));localStorage.setItem('ptm3_water',JSON.stringify(waterData));localStorage.setItem('ptm3_weight',JSON.stringify(weightLog));}catch(e){}}
+function loadAll(){try{const f=k=>localStorage.getItem(k);const s=f('ptm3_state'),p=f('ptm3_prefs'),pd=f('ptm3_personal'),cy=f('ptm3_cycle'),wa=f('ptm3_water'),wl=f('ptm3_weight');if(s)appState=JSON.parse(s);if(p)prefs=JSON.parse(p);if(pd)personalData=JSON.parse(pd);if(cy)cycleData=JSON.parse(cy);if(wa)Object.assign(waterData,JSON.parse(wa));if(wl)weightLog=JSON.parse(wl);}catch(e){}}
+
+// ═══════════ TRAINING WEEK ═══════════
+function getTrainingWeekNumber(){
+  if(!prefs.fitStartDate)return 1;
+  const start=new Date(prefs.fitStartDate);start.setHours(0,0,0,0);
+  const diff=Math.floor((currentWeekStart-start)/(7*24*3600*1000));
+  return Math.max(1,diff+1);
+}
+function getTrainingDuration(){
+  const base=Number(prefs.fitBaseDuration)||10;
+  const step=Number(prefs.fitStepMin)||10;
+  const w=getTrainingWeekNumber();
+  return base+(w-1)*step;
+}
+
+// ═══════════ WATER ═══════════
+function todayWater(){return waterData[todayKey()]||0;}
+function setTodayWater(n){waterData[todayKey()]=n;saveAll();}
+function renderWaterBar(){
+  const goal=Number(prefs.waterGoal)||8,cur=todayWater();
+  const gl=document.getElementById('waterGlasses');gl.innerHTML='';
+  for(let i=0;i<goal;i++){const b=document.createElement('button');b.className='glass-btn'+(i<cur?' filled':'');b.title=i<cur?`Glas ${i+1} ✓`:`Glas ${i+1} trinken`;b.textContent=i<cur?'💧':'○';b.addEventListener('click',()=>{setTodayWater(i<todayWater()?i:i+1);renderWaterBar();});gl.appendChild(b);}
+  document.getElementById('waterInfo').textContent=`${cur}/${goal} (${cur*250}ml)`;
+  document.getElementById('wpCount').textContent=cur;document.getElementById('wpGoal').textContent=goal;
+}
+document.getElementById('notifBtn').addEventListener('click',async()=>{
+  if(waterInterval){clearInterval(waterInterval);waterInterval=null;document.getElementById('notifBtn').textContent='🔔 Erinnerung aktivieren';document.getElementById('notifBtn').classList.remove('on');showToast('Erinnerungen deaktiviert');return;}
+  if('Notification'in window){const p=await Notification.requestPermission();notifGranted=(p==='granted');}
+  waterInterval=setInterval(()=>showWaterPopup(),2*60*60*1000);
+  document.getElementById('notifBtn').textContent='✅ Aktiv (alle 2h)';document.getElementById('notifBtn').classList.add('on');
+  showToast('💧 Wasser-Erinnerung aktiviert!');setTimeout(()=>showWaterPopup(),5000);
+});
+function showWaterPopup(){
+  document.getElementById('wpCount').textContent=todayWater();document.getElementById('wpGoal').textContent=Number(prefs.waterGoal)||8;
+  document.getElementById('waterPopup').classList.add('show');
+  if(notifGranted&&'Notification'in window&&document.hidden){try{new Notification('💧 Zeit zu trinken!',{body:`${todayWater()} von ${Number(prefs.waterGoal)||8} Gläsern heute. Weiter so! 💪`});}catch(e){}}
+  setTimeout(()=>document.getElementById('waterPopup').classList.remove('show'),12000);
+}
+document.getElementById('wpClose').addEventListener('click',()=>document.getElementById('waterPopup').classList.remove('show'));
+document.getElementById('wpDrinkBtn').addEventListener('click',()=>{const n=todayWater(),g=Number(prefs.waterGoal)||8;if(n<g)setTodayWater(n+1);renderWaterBar();document.getElementById('waterPopup').classList.remove('show');showToast(`💧 Super! ${todayWater()}/${g} Gläser ✓`);});
+
+// ═══════════ TABS ═══════════
+document.querySelectorAll('.tab').forEach(tab=>{
+  tab.addEventListener('click',()=>{
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    tab.classList.add('active');document.getElementById('tab-'+tab.dataset.tab).classList.add('active');
+    if(tab.dataset.tab==='overview')renderOverview();
+    if(tab.dataset.tab==='fitness')renderFitnessTab();
+    if(tab.dataset.tab==='personal')renderPersonalTab();
+    if(tab.dataset.tab==='work')renderWorkTab();
+    if(tab.dataset.tab==='prefs')renderPrefs();
+  });
+});
+
+// ═══════════ WEEK NAV ═══════════
+function updateWeekLabel(){document.getElementById('weekLabel').textContent=formatWeekLabel(currentWeekStart);}
+document.getElementById('prevWeek').addEventListener('click',()=>{currentWeekStart.setDate(currentWeekStart.getDate()-7);updateWeekLabel();const t=document.querySelector('.tab.active').dataset.tab;if(t==='overview')renderOverview();if(t==='work')renderWorkTab();});
+document.getElementById('nextWeek').addEventListener('click',()=>{currentWeekStart.setDate(currentWeekStart.getDate()+7);updateWeekLabel();const t=document.querySelector('.tab.active').dataset.tab;if(t==='overview')renderOverview();if(t==='work')renderWorkTab();});
+
+// ═══════════ FITNESS TAB ═══════════
+document.getElementById('fitCatTabs').addEventListener('click',e=>{const btn=e.target.closest('.workout-tab');if(!btn)return;currentCat=btn.dataset.cat;renderFitnessTab();});
+function renderFitnessTab(){
+  document.querySelectorAll('.workout-tab').forEach(t=>t.classList.toggle('active',t.dataset.cat===currentCat));
+  const filtered=currentCat==='all'?EXERCISES:EXERCISES.filter(e=>e.cat===currentCat);
+  const grid=document.getElementById('workoutGrid');grid.innerHTML='';
+  filtered.forEach(ex=>{
+    const card=document.createElement('div');card.className='exercise-card'+(selectedExercises.includes(ex.id)?' selected':'');
+    card.innerHTML=`<div class="selected-check">✓</div><div class="ex-img">${ex.svg}</div><div class="ex-body"><div class="ex-name">${ex.name}</div><div class="ex-meta">${ex.sets} · ${ex.muscle}</div><div style="margin-top:4px"><span class="ex-badge ${ex.cat}">${ex.cat==='body'?'Körpergewicht':ex.cat==='band'?'Fitness-Band':ex.cat==='dumbbell'?'Hantel':ex.cat==='foam'?'Faszienrolle':'Standfahrrad'}</span>${ex.mod?'<span class="ex-badge mod">🔴 Mod.</span>':''}</div><div style="font-size:.67rem;color:var(--muted);margin-top:4px;font-style:italic">${ex.tip.substring(0,55)}…</div></div>`;
+    card.addEventListener('click',()=>{if(selectedExercises.includes(ex.id)){selectedExercises=selectedExercises.filter(i=>i!==ex.id);}else{selectedExercises.push(ex.id);}renderFitnessTab();renderMyWorkout();});
+    grid.appendChild(card);
+  });
+  renderMyWorkout();
+}
+function renderMyWorkout(){
+  const pl=document.getElementById('myWorkoutPlan');
+  if(!selectedExercises.length){pl.innerHTML='<span style="color:var(--muted);font-size:.78rem">Noch keine Übungen ausgewählt</span>';return;}
+  pl.innerHTML='';
+  selectedExercises.forEach(id=>{const ex=EXERCISES.find(e=>e.id===id);if(!ex)return;const chip=document.createElement('div');chip.className='plan-exercise-chip';chip.innerHTML=`${ex.icon} ${ex.name} <button title="Entfernen">×</button>`;chip.querySelector('button').addEventListener('click',e=>{e.stopPropagation();selectedExercises=selectedExercises.filter(i=>i!==id);renderFitnessTab();});pl.appendChild(chip);});
+}
+document.getElementById('saveWorkoutBtn').addEventListener('click',()=>{if(!selectedExercises.length){showToast('Wähle zuerst Übungen aus');return;}const wd=getWeekData();wd.workouts[todayKey()]=selectedExercises;saveAll();showToast('Workout gespeichert ✓');});
+document.getElementById('clearWorkoutBtn').addEventListener('click',()=>{selectedExercises=[];renderFitnessTab();});
+
+// ═══════════ WORK TAB ═══════════
+function renderWorkTab(){
+  const wd=getWeekData();const grid=document.getElementById('workGrid');grid.innerHTML='';
+  DAYS_DE.forEach((day,i)=>{
+    const d=weekDateFor(i);const block=document.createElement('div');block.className='day-block';
+    block.innerHTML=`<div class="day-name">${day} <span style="font-weight:400;color:var(--muted);font-size:.7rem">${d.getDate()}.${d.getMonth()+1}</span></div><div id="shifts-${i}"></div><button class="add-shift-btn" data-day="${i}">+ Schicht</button><label class="day-off-toggle"><input type="checkbox" class="day-off-cb" data-day="${i}"> Freier Tag</label>`;
+    grid.appendChild(block);renderShifts(i,wd.work[i]||[]);
+  });
+  document.querySelectorAll('.add-shift-btn').forEach(b=>b.addEventListener('click',()=>addShift(Number(b.dataset.day))));
+}
+function renderShifts(di,shifts){
+  const cont=document.getElementById(`shifts-${di}`);if(!cont)return;cont.innerHTML='';
+  (shifts||[]).forEach((sh,si)=>{const row=document.createElement('div');row.className='time-row';row.innerHTML=`<input type="time" value="${sh.start||'08:00'}" class="sh-s" data-d="${di}" data-i="${si}"><span class="time-sep">–</span><input type="time" value="${sh.end||'16:00'}" class="sh-e" data-d="${di}" data-i="${si}"><button class="remove-shift-btn" data-d="${di}" data-i="${si}">×</button>`;cont.appendChild(row);});
+  cont.querySelectorAll('.sh-s').forEach(inp=>inp.addEventListener('change',()=>{getWeekData().work[Number(inp.dataset.d)][Number(inp.dataset.i)].start=inp.value;}));
+  cont.querySelectorAll('.sh-e').forEach(inp=>inp.addEventListener('change',()=>{getWeekData().work[Number(inp.dataset.d)][Number(inp.dataset.i)].end=inp.value;}));
+  cont.querySelectorAll('.remove-shift-btn').forEach(btn=>btn.addEventListener('click',()=>{const wd=getWeekData();wd.work[Number(btn.dataset.d)].splice(Number(btn.dataset.i),1);renderShifts(Number(btn.dataset.d),wd.work[Number(btn.dataset.d)]);;}));
+}
+function addShift(di){getWeekData().work[di].push({start:'08:00',end:'16:00'});renderShifts(di,getWeekData().work[di]);}
+document.getElementById('saveWorkBtn').addEventListener('click',()=>{saveAll();showToast('Arbeitszeiten gespeichert ✓');});
+document.getElementById('clearWorkBtn').addEventListener('click',()=>{const wd=getWeekData();wd.work=Array(7).fill(null).map(()=>[]);renderWorkTab();});
+
+// ═══════════ PREFS TAB ═══════════
+function renderPrefs(){
+  ['fitBaseDuration','fitStepMin','fitTime','homeHours','homeMaxBlocks','homeTime','meHours','meTime','meMinBlock','sleepStart','wakeUp','waterGoal'].forEach(k=>{const el=document.getElementById(k);if(el&&prefs[k]!==undefined)el.value=prefs[k];});
+  if(prefs.fitStartDate){const el=document.getElementById('fitStartDate');if(el)el.value=prefs.fitStartDate;}
+  updateProgressPreview();
+}
+function updateProgressPreview(){
+  const base=Number(document.getElementById('fitBaseDuration')?.value)||10;
+  const step=Number(document.getElementById('fitStepMin')?.value)||10;
+  const startVal=document.getElementById('fitStartDate')?.value;
+  const prev=document.getElementById('progressPreview');if(!prev)return;
+  if(!startVal){prev.innerHTML='← Startdatum eintragen';return;}
+  const start=new Date(startVal);
+  const rows=[];
+  for(let w=1;w<=8;w++){const wDate=new Date(start);wDate.setDate(wDate.getDate()+(w-1)*7);const dur=base+(w-1)*step;rows.push(`<span style="font-weight:600">W${w}</span> (${wDate.getDate()}.${wDate.getMonth()+1}): <span style="font-weight:700;color:#2d6a35">${dur} Min</span>`);}
+  prev.innerHTML='📅 Steigerungsplan:<br>'+rows.join(' · ');
+}
+['fitBaseDuration','fitStepMin','fitStartDate'].forEach(k=>{const el=document.getElementById(k);if(el)el.addEventListener('input',updateProgressPreview);});
+document.getElementById('savePrefsBtn').addEventListener('click',()=>{
+  ['fitBaseDuration','fitStepMin','fitTime','homeHours','homeMaxBlocks','homeTime','meHours','meTime','meMinBlock','sleepStart','wakeUp','waterGoal'].forEach(k=>{const el=document.getElementById(k);if(el)prefs[k]=el.type==='time'||el.tagName==='SELECT'?el.value:Number(el.value);});
+  const sd=document.getElementById('fitStartDate');if(sd)prefs.fitStartDate=sd.value;
+  if(!prefs.fitStartDate){prefs.fitStartDate=new Date().toISOString().slice(0,10);}
+  saveAll();renderWaterBar();updateProgressPreview();showToast('Einstellungen gespeichert ✓');
+});
+
+// ═══════════ PERSONAL TAB ═══════════
+function renderPersonalTab(){
+  const pd=personalData;
+  ['height','weight','year','goalweight','chest','waist','hip','thigh','arm','goal','notes'].forEach(k=>{const el=document.getElementById('pd_'+k);if(el&&pd[k]!==undefined)el.value=pd[k];});
+  const md=document.getElementById('pd_measdate');if(md)md.value=new Date().toISOString().slice(0,10);
+  calcBMI();renderMeasLog();renderWeightChart();renderCycleCalendar();
+  document.getElementById('wlog_date').value=new Date().toISOString().slice(0,10);
+}
+['pd_height','pd_weight'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('input',calcBMI);});
+function calcBMI(){
+  const h=Number(document.getElementById('pd_height')?.value),w=Number(document.getElementById('pd_weight')?.value);
+  const disp=document.getElementById('bmiDisplay');if(!disp)return;
+  if(!h||!w){disp.style.display='none';return;}
+  const bmi=w/((h/100)*(h/100));disp.style.display='flex';
+  document.getElementById('bmiNum').textContent=bmi.toFixed(1);
+  let label,color;
+  if(bmi<18.5){label='Untergewicht';color='#64b5f6';}
+  else if(bmi<25){label='Normalgewicht';color='#81c784';}
+  else if(bmi<30){label='Übergewicht';color='#ffb74d';}
+  else{label='Adipositas';color='#e57373';}
+  document.getElementById('bmiLabel').textContent=label;
+  document.getElementById('bmiLabel').style.color=color;
+  // indicator position: 15=0%, 40=100%
+  const pct=Math.min(100,Math.max(0,(bmi-15)/25*100));
+  document.getElementById('bmiIndicator').style.left=pct+'%';
+}
+document.getElementById('savePersonalBtn').addEventListener('click',()=>{
+  ['height','weight','year','goalweight','goal','notes'].forEach(k=>{const el=document.getElementById('pd_'+k);if(el)personalData[k]=el.value;});
+  saveAll();calcBMI();showToast('Daten gespeichert ✓');
+});
+document.getElementById('saveMeasBtn').addEventListener('click',()=>{
+  const entry={date:document.getElementById('pd_measdate').value};
+  ['chest','waist','hip','thigh','arm'].forEach(k=>{const v=document.getElementById('pd_'+k).value;if(v)entry[k]=v;});
+  if(!personalData.measurements)personalData.measurements=[];
+  personalData.measurements.unshift(entry);if(personalData.measurements.length>12)personalData.measurements.length=12;
+  saveAll();renderMeasLog();showToast('Messung gespeichert ✓');
+});
+function renderMeasLog(){
+  const log=document.getElementById('measLog');if(!log)return;
+  const meas=personalData.measurements||[];
+  if(!meas.length){log.innerHTML='<div style="font-size:.75rem;color:var(--muted);text-align:center;padding:10px">Noch keine Messungen</div>';return;}
+  log.innerHTML=meas.slice(0,4).map(m=>`<div class="log-entry"><div><span class="log-date">${m.date}</span><br><span style="font-size:.75rem">B:${m.chest||'–'} T:${m.waist||'–'} H:${m.hip||'–'} OS:${m.thigh||'–'} OA:${m.arm||'–'} cm</span></div></div>`).join('');
+}
+
+// Weight log
+document.getElementById('addWeightBtn').addEventListener('click',()=>{
+  const w=document.getElementById('wlog_weight').value,d=document.getElementById('wlog_date').value;
+  if(!w||!d){showToast('Bitte Gewicht und Datum eintragen');return;}
+  weightLog.push({date:d,weight:Number(w)});weightLog.sort((a,b)=>a.date.localeCompare(b.date));if(weightLog.length>30)weightLog=weightLog.slice(-30);
+  saveAll();renderWeightChart();showToast(`${w} kg am ${d} gespeichert ✓`);
+});
+function renderWeightChart(){
+  const chart=document.getElementById('weightChart');if(!chart)return;
+  if(!weightLog.length){chart.innerHTML='<div style="color:var(--muted);font-size:.78rem;align-self:center">Noch keine Einträge</div>';return;}
+  const vals=weightLog.map(e=>e.weight);const mn=Math.min(...vals)-1,mx=Math.max(...vals)+1;const h=100;
+  chart.innerHTML=weightLog.map((e,i)=>{
+    const pct=(e.weight-mn)/(mx-mn);const barH=Math.max(8,Math.round(pct*h));
+    return`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px"><div style="background:var(--fit);width:100%;height:${barH}px;border-radius:3px 3px 0 0;min-width:6px" title="${e.date}: ${e.weight}kg"></div><div style="font-size:.55rem;color:var(--muted);writing-mode:vertical-rl;transform:rotate(180deg)">${e.date.slice(5)}</div></div>`;
+  }).join('');
+}
+
+// ═══════════ CYCLE TRACKER ═══════════
+function renderCycleCalendar(){
+  const cal=document.getElementById('cycleCalendar');if(!cal)return;
+  if(cycleData.start){document.getElementById('cycle_start').value=cycleData.start;}
+  if(cycleData.len)document.getElementById('cycle_len').value=cycleData.len;
+  if(cycleData.period)document.getElementById('cycle_period').value=cycleData.period;
+  if(cycleData.ov)document.getElementById('cycle_ov').value=cycleData.ov;
+  if(!cycleData.start){cal.innerHTML='<div style="grid-column:1/-1;font-size:.75rem;color:#ad1457">Startdatum eintragen →</div>';return;}
+  const start=new Date(cycleData.start);
+  const cycleLen=Number(cycleData.len)||28;
+  const periodLen=Number(cycleData.period)||5;
+  const ovDay=Number(cycleData.ov)||14;
+  const today=new Date();today.setHours(0,0,0,0);
+  // Show current month
+  const y=today.getFullYear(),m=today.getMonth();
+  const firstDay=new Date(y,m,1);const daysInMonth=new Date(y,m+1,0).getDate();
+  const startDow=firstDay.getDay()===0?6:firstDay.getDay()-1;
+  cal.innerHTML='';
+  ['Mo','Di','Mi','Do','Fr','Sa','So'].forEach(d=>{const el=document.createElement('div');el.style.cssText='font-size:.6rem;font-weight:700;color:#ad1457;text-align:center;padding:2px 0';el.textContent=d;cal.appendChild(el);});
+  for(let i=0;i<startDow;i++){cal.appendChild(document.createElement('div'));}
+  for(let d=1;d<=daysInMonth;d++){
+    const date=new Date(y,m,d);
+    const diffDays=Math.floor((date-start)/(24*3600*1000));
+    const cycleDay=((diffDays%cycleLen)+cycleLen)%cycleLen+1;
+    const el=document.createElement('div');el.className='cycle-day';el.textContent=d;
+    if(isSameDay(date,today))el.classList.add('today-c');
+    if(cycleDay<=periodLen)el.classList.add('period');
+    else if(cycleDay===ovDay)el.classList.add('ovulation');
+    else if(cycleDay>=ovDay-3&&cycleDay<=ovDay+1)el.classList.add('fertile');
+    cal.appendChild(el);
+  }
+  updatePhaseInfo(start,cycleLen,periodLen,ovDay,today);
+}
+function updatePhaseInfo(start,cycleLen,periodLen,ovDay,today){
+  const diffDays=Math.floor((today-start)/(24*3600*1000));
+  const cycleDay=((diffDays%cycleLen)+cycleLen)%cycleLen+1;
+  const phaseInfo=document.getElementById('phaseInfo');
+  const trainingTip=document.getElementById('cycleTrainingTip');
+  let phase,desc,tip;
+  if(cycleDay<=periodLen){phase='🌸 Menstruation';desc=`Tag ${cycleDay} der Periode. Energie ist oft niedriger — Selbstfürsorge steht an erster Stelle.`;tip='Leichtes Yoga, Faszienrolle, Spaziergang oder Standfahrrad auf niedrigem Widerstand. Auf deinen Körper hören — Pause ist okay!';}
+  else if(cycleDay<ovDay-3){phase='🌱 Follikelphase';desc=`Zyklustag ${cycleDay}. Östrogen steigt — Energie und Stimmung nehmen zu!`;tip='Perfekt für intensivere Einheiten: Kraft, Intervalle auf dem Standfahrrad, Körpergewichtstraining. Du bist jetzt besonders leistungsfähig!';}
+  else if(cycleDay===ovDay){phase='✨ Eisprung';desc=`Zyklustag ${cycleDay}. Höchste Energie und Kraft!`;tip='Dein stärkster Tag! Intensive Workouts, Intervalltraining, Hantelübungen — alles ist möglich. Energie nutzen!';}
+  else if(cycleDay<=ovDay+3){phase='🌸 Fruchtbare Phase';desc=`Zyklustag ${cycleDay}. Energie noch hoch, fruchtbares Fenster.`;tip='Weiterhin gute Energie für Kraft und Ausdauer. Standfahrrad-Intervalle, Körpergewicht, Bänder ideal.';}
+  else{phase='🍂 Lutealphase';desc=`Zyklustag ${cycleDay}. PMS möglich — Körper bereitet sich vor.`;tip='Ruhigere Einheiten bevorzugen: Spazieren, Faszienrolle, leichte Hanteln, entspanntes Fahrradfahren. Auf Kohlenhydrate achten!';}
+  phaseInfo.innerHTML=`<div class="phase-title">${phase}</div><div class="phase-text">${desc}<br><br>Zyklustag: <strong>${cycleDay}</strong> von ${cycleLen}</div>`;
+  trainingTip.textContent=tip;
+}
+document.getElementById('saveCycleBtn').addEventListener('click',()=>{
+  cycleData={start:document.getElementById('cycle_start').value,len:Number(document.getElementById('cycle_len').value),period:Number(document.getElementById('cycle_period').value),ov:Number(document.getElementById('cycle_ov').value)};
+  saveAll();renderCycleCalendar();showToast('Zyklus gespeichert ✓');
+});
+
+// ═══════════ TIME UTILS ═══════════
+function parseTime(s){if(!s)return null;const[h,m]=s.split(':').map(Number);return h*60+(m||0);}
+function toTimeStr(m){return`${String(Math.floor(m/60)%24).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`;}
+function slotIdx(m){return(m-HOURS_START*60)/SLOT_MINS;}
+function totalSlots(){return(HOURS_END-HOURS_START)*60/SLOT_MINS;}
+
+// ═══════════ GENERATE PLAN ═══════════
+function generatePlan(){
+  const wd=getWeekData(),p=prefs;
+  const sleepMin=parseTime(p.sleepStart)||22*60+30;
+  const wakeMin=parseTime(p.wakeUp)||6*60+30;
+  const fitDur=getTrainingDuration();
+  const [ftws,ftwe]=(TIME_WINDOWS[p.fitTime]||TIME_WINDOWS.afternoon).map(h=>h*60);
+  const [htws,htwe]=(TIME_WINDOWS[p.homeTime]||TIME_WINDOWS.morning).map(h=>h*60);
+  const [mtws,mtwe]=(TIME_WINDOWS[p.meTime]||TIME_WINDOWS.evening).map(h=>h*60);
+
+  const busy=Array(7).fill(null).map(()=>[]);
+  for(let d=0;d<7;d++){
+    busy[d].push({s:0,e:wakeMin},{s:sleepMin,e:24*60});
+    (wd.work[d]||[]).forEach(sh=>{const s=parseTime(sh.start),e=parseTime(sh.end);if(s!=null&&e!=null&&e>s)busy[d].push({s,e});});
+    busy[d].sort((a,b)=>a.s-b.s);
+  }
+  function freeSlots(di,ws,we){const b=busy[di];const sl=[];let cur=ws;for(const bk of b){if(bk.s>=we)break;if(bk.s>cur)sl.push({s:cur,e:Math.min(bk.s,we)});cur=Math.max(cur,bk.e);}if(cur<we)sl.push({s:cur,e:we});return sl.filter(s=>s.e-s.s>=SLOT_MINS);}
+  function markBusy(di,s,e){busy[di].push({s,e});busy[di].sort((a,b)=>a.s-b.s);}
+  function hasWork(di){return(wd.work[di]||[]).some(sh=>sh.start&&sh.end);}
+
+  wd.events=Array(7).fill(null).map(()=>[]);
+  for(let d=0;d<7;d++)(wd.work[d]||[]).forEach(sh=>{if(sh.start&&sh.end)wd.events[d].push({type:'work',start:parseTime(sh.start),end:parseTime(sh.end),label:'💼 Arbeit'});});
+
+  // FITNESS: every non-work day
+  for(let d=0;d<7;d++){
+    if(hasWork(d))continue;
+    let placed=false;
+    for(const sl of freeSlots(d,ftws,ftwe)){if(sl.e-sl.s>=fitDur){const s=sl.s,e=s+fitDur;wd.events[d].push({type:'fit',start:s,end:e,label:`💪 Fitness (${fitDur}Min)`});markBusy(d,s,e);placed=true;break;}}
+    if(!placed){for(const sl of freeSlots(d,wakeMin,sleepMin)){if(sl.e-sl.s>=fitDur){const s=sl.s,e=s+fitDur;wd.events[d].push({type:'fit',start:s,end:e,label:`💪 Fitness (${fitDur}Min)`});markBusy(d,s,e);break;}}}
+  }
+
+  // HAUSARBEIT
+  let homeRem=(Number(p.homeHours)||6)*60;const homeMax=Number(p.homeMaxBlocks)||1;
+  for(let d=0;d<7;d++){if(homeRem<=0)break;let placed=0;for(const sl of freeSlots(d,htws,htwe)){if(placed>=homeMax||homeRem<=0)break;const block=Math.min(sl.e-sl.s,homeRem,90);if(block>=20){const s=sl.s,e=s+block;wd.events[d].push({type:'home',start:s,end:e,label:'🏠 Hausarbeit'});markBusy(d,s,e);homeRem-=block;placed++;}}}
+
+  // ME TIME
+  let meRem=(Number(p.meHours)||5)*60;const meMin=Number(p.meMinBlock)||60;
+  for(const d of shuffled([0,1,2,3,4,5,6])){if(meRem<=0)break;for(const sl of freeSlots(d,mtws,mtwe)){if(meRem<=0)break;const block=Math.min(sl.e-sl.s,meRem,120);if(block>=meMin){const s=sl.s,e=s+block;wd.events[d].push({type:'me',start:s,end:e,label:'✨ Me Time'});markBusy(d,s,e);meRem-=block;break;}}}
+
+  saveAll();renderOverview();showToast(`Plan generiert — Woche ${getTrainingWeekNumber()}: ${fitDur} Min Fitness ✓`);
+}
+function shuffled(arr){const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+document.getElementById('generateBtn').addEventListener('click',generatePlan);
+
+// ═══════════ OVERVIEW ═══════════
+function renderOverview(){
+  const wd=getWeekData();
+  const notes=document.getElementById('weekNotes');notes.value=wd.notes||'';notes.oninput=()=>{wd.notes=notes.value;saveAll();};
+
+  // Progress banner
+  if(prefs.fitStartDate){
+    const wn=getTrainingWeekNumber(),dur=getTrainingDuration();
+    document.getElementById('progBanner').style.display='flex';
+    document.getElementById('pbWeek').textContent=`W${wn}`;
+    document.getElementById('pbTitle').textContent=`Trainingswoche ${wn} · ${dur} Minuten Workout`;
+    document.getElementById('pbSub').textContent=`Nächste Woche: ${dur+Number(prefs.fitStepMin||10)} Min · Workout nur an freien Tagen`;
+    const dots=document.getElementById('progDots');dots.innerHTML='';
+    for(let i=1;i<=8;i++){const dot=document.createElement('div');dot.className='prog-dot'+(i<wn?' done':i===wn?' active':'');dots.appendChild(dot);}
+  } else document.getElementById('progBanner').style.display='none';
+
+  const hh={work:0,fit:0,home:0,me:0};
+  wd.events.forEach(de=>de.forEach(ev=>{if(hh[ev.type]!==undefined)hh[ev.type]+=(ev.end-ev.start);}));
+  const fmt=m=>(m/60).toFixed(1).replace('.0','');
+  document.getElementById('summaryRow').innerHTML=`<div class="summary-card work"><div class="sc-label">Arbeit</div><div class="sc-hours">${fmt(hh.work)}h</div></div><div class="summary-card fit"><div class="sc-label">Fitness</div><div class="sc-hours">${fmt(hh.fit)}h</div></div><div class="summary-card home"><div class="sc-label">Hausarbeit</div><div class="sc-hours">${fmt(hh.home)}h</div></div><div class="summary-card me"><div class="sc-label">Me Time</div><div class="sc-hours">${fmt(hh.me)}h</div></div>`;
+
+  const header=document.getElementById('schedHeader');header.innerHTML='<div class="sched-day-head"></div>';
+  DAYS_SHORT.forEach((d,i)=>{const dt=weekDateFor(i),today=isSameDay(dt,new Date());header.innerHTML+=`<div class="sched-day-head${today?' today':''}">${d}<span>${dt.getDate()}.${dt.getMonth()+1}</span></div>`;});
+
+  const body=document.getElementById('schedBody');body.innerHTML='';
+  const N=totalSlots();
+  const tc=document.createElement('div');tc.className='sched-time-col';
+  for(let i=0;i<N;i++){const lbl=document.createElement('div');lbl.className='sched-time-label';lbl.textContent=i%2===0?toTimeStr(HOURS_START*60+i*SLOT_MINS):'';tc.appendChild(lbl);}
+  body.appendChild(tc);
+
+  for(let d=0;d<7;d++){
+    const col=document.createElement('div');col.className='sched-day-col';
+    for(let i=0;i<N;i++){const sl=document.createElement('div');sl.className='sched-slot';col.appendChild(sl);}
+    (wd.events[d]||[]).forEach(ev=>{
+      const top=slotIdx(ev.start),span=(ev.end-ev.start)/SLOT_MINS;
+      if(top<0||top>=N)return;
+      const el=document.createElement('div');el.className=`sched-event ${ev.type}`;
+      el.style.top=`${top*32}px`;el.style.height=`${span*32-2}px`;el.textContent=ev.label||ev.type;
+      if(ev.type==='fit'){el.title='Klicken für Workout';el.addEventListener('click',e=>{e.stopPropagation();openFitModal(d,ev);});}
+      col.appendChild(el);
+    });
+    col.addEventListener('click',()=>openModal(d));
+    body.appendChild(col);
+  }
+}
+
+// ═══════════ FIT MODAL ═══════════
+function openFitModal(di,ev){
+  const wd=getWeekData();const date=weekDateFor(di);
+  const saved=wd.workouts[date.toISOString().slice(0,10)]||[];
+  document.getElementById('fitModalTitle').childNodes[0].textContent=`Workout ${DAYS_DE[di]} `;
+  const exList=saved.length>0?saved.map(id=>EXERCISES.find(e=>e.id===id)).filter(Boolean):EXERCISES.filter(e=>e.cat==='body').slice(0,2).concat(EXERCISES.filter(e=>e.cat==='bike').slice(0,1)).concat(EXERCISES.filter(e=>e.cat==='foam').slice(0,1));
+  let html=`<div style="background:var(--fit-l);border-radius:7px;padding:9px 12px;font-size:.78rem;color:#2d6a35;margin-bottom:14px;font-weight:600">⏱️ ${toTimeStr(ev.start)} – ${toTimeStr(ev.end)} · Woche ${getTrainingWeekNumber()} · ${ev.end-ev.start} Min</div>`;
+  if(!saved.length)html+=`<div style="font-size:.75rem;color:var(--muted);margin-bottom:12px;font-style:italic">💡 Kein Workout gespeichert — Vorschlag unten. Im Tab "Übungen" anpassen.</div>`;
+  exList.forEach((ex,i)=>{html+=`<div class="fit-ex-item"><div class="fit-ex-thumb">${ex.svg}</div><div class="fit-ex-info"><div class="ex-name">${i+1}. ${ex.name}</div><div class="ex-meta">${ex.sets} · ${ex.muscle}</div><div class="ex-tip">${ex.tip}</div>${ex.mod?`<div style="font-size:.68rem;color:#c62828;margin-top:3px;font-weight:600">🔴 Anpassung beachten</div>`:''}</div></div>`;});
+  html+=`<div class="btn-row" style="margin-top:14px"><button class="btn-primary" onclick="document.getElementById('fitModalOverlay').classList.remove('open')">Schließen</button></div>`;
+  document.getElementById('fitModalBody').innerHTML=html;
+  document.getElementById('fitModalOverlay').classList.add('open');
+}
+document.getElementById('fitModalClose').addEventListener('click',()=>document.getElementById('fitModalOverlay').classList.remove('open'));
+document.getElementById('fitModalOverlay').addEventListener('click',e=>{if(e.target===e.currentTarget)e.target.classList.remove('open');});
+
+// ═══════════ DAY MODAL ═══════════
+const TYPE_META={work:{label:'Arbeit',emoji:'💼',color:'var(--work)'},fit:{label:'Fitness',emoji:'💪',color:'var(--fit)'},home:{label:'Hausarbeit',emoji:'🏠',color:'var(--home)'},me:{label:'Me Time',emoji:'✨',color:'var(--me)'},free:{label:'Freizeit',emoji:'☀️',color:'var(--free)'}};
+function openModal(di){editingDay=di;const d=weekDateFor(di);document.getElementById('modalTitle').childNodes[0].textContent=`${DAYS_DE[di]}, ${d.getDate()}.${d.getMonth()+1} `;renderEventList(getWeekData().events[di]||[]);document.getElementById('modalOverlay').classList.add('open');}
+function renderEventList(evs){
+  const list=document.getElementById('eventList');list.innerHTML='';
+  evs.forEach((ev,i)=>{const meta=TYPE_META[ev.type]||TYPE_META.free;const item=document.createElement('div');item.className='event-item';item.innerHTML=`<div class="event-type-dot" style="background:${meta.color}"></div><select class="ev-type" data-i="${i}">${Object.entries(TYPE_META).map(([k,v])=>`<option value="${k}"${ev.type===k?' selected':''}>${v.emoji} ${v.label}</option>`).join('')}</select><input type="time" class="ev-s" value="${toTimeStr(ev.start)}"><span style="font-size:.7rem;color:var(--muted)">–</span><input type="time" class="ev-e" value="${toTimeStr(ev.end)}"><button class="remove-shift-btn ev-del" data-i="${i}">×</button>`;list.appendChild(item);});
+  list.querySelectorAll('.ev-type').forEach(sel=>sel.addEventListener('change',()=>{sel.parentElement.querySelector('.event-type-dot').style.background=(TYPE_META[sel.value]||TYPE_META.free).color;}));
+  list.querySelectorAll('.ev-del').forEach(btn=>btn.addEventListener('click',()=>{const wd=getWeekData();wd.events[editingDay].splice(Number(btn.dataset.i),1);renderEventList(wd.events[editingDay]);}));
+}
+document.getElementById('addEventBtn').addEventListener('click',()=>{const wd=getWeekData();wd.events[editingDay].push({type:'free',start:9*60,end:10*60,label:'Freizeit'});renderEventList(wd.events[editingDay]);});
+document.getElementById('saveModalBtn').addEventListener('click',()=>{
+  const wd=getWeekData();const items=document.querySelectorAll('#eventList .event-item');wd.events[editingDay]=[];
+  items.forEach(item=>{const type=item.querySelector('.ev-type').value,s=parseTime(item.querySelector('.ev-s').value),e=parseTime(item.querySelector('.ev-e').value),meta=TYPE_META[type]||{};if(s!=null&&e!=null&&e>s)wd.events[editingDay].push({type,start:s,end:e,label:meta.emoji+' '+meta.label});});
+  saveAll();document.getElementById('modalOverlay').classList.remove('open');editingDay=null;renderOverview();showToast('Tag gespeichert ✓');
+});
+function closeModal(){document.getElementById('modalOverlay').classList.remove('open');editingDay=null;}
+document.getElementById('modalClose').addEventListener('click',closeModal);
+document.getElementById('cancelModalBtn').addEventListener('click',closeModal);
+document.getElementById('modalOverlay').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal();});
+
+// ═══════════ TOAST ═══════════
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);}
+
+// ═══════════ BOOT ═══════════
+loadAll();
+if(!prefs||!prefs.fitBaseDuration)prefs=defaultPrefs();
+updateWeekLabel();renderWaterBar();renderOverview();
+
+// ═══════════ SERVICE WORKER ═══════════
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('sw.js')
+      .then(()=>console.log('SW registered'))
+      .catch(e=>console.log('SW error:',e));
+  });
+}
+</script>
+</body>
+</html>
