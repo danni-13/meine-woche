@@ -472,6 +472,17 @@ main{max-width:1100px;margin:0 auto;padding:22px 16px}
     </div>
   </div>
   <div class="btn-row"><button class="btn-primary" id="savePrefsBtn">💾 Einstellungen speichern</button></div>
+
+  <div class="card" style="margin-top:8px;border:1.5px solid #e8b86d;background:#fffbf0">
+    <div class="section-title" style="font-size:.95rem;margin-bottom:4px">🔒 Datensicherung</div>
+    <p style="font-size:.78rem;color:var(--muted);margin-bottom:14px;line-height:1.5">Sichere deine Daten als Datei auf deinem Handy — so gehen sie nie verloren, auch wenn der Browser-Cache geleert wird.</p>
+    <div class="btn-row" style="margin-top:0">
+      <button class="btn-primary" id="exportBtn" style="background:#C47F3A">📥 Backup speichern</button>
+      <button class="btn-secondary" id="importBtn">📤 Backup laden</button>
+      <input type="file" id="importFile" accept=".json" style="display:none">
+    </div>
+    <div style="font-size:.72rem;color:var(--muted);margin-top:10px">💡 Tipp: Einmal pro Woche reicht als Backup.</div>
+  </div>
 </div>
 </main>
 
@@ -1503,8 +1514,115 @@ function isSameDay(a,b){return a.getFullYear()===b.getFullYear()&&a.getMonth()==
 function getWeekData(){const k=weekKey(currentWeekStart);if(!appState[k])appState[k]={work:Array(7).fill(null).map(()=>[]),events:Array(7).fill(null).map(()=>[]),notes:'',workouts:{}};if(!appState[k].workouts)appState[k].workouts={};return appState[k];}
 function defaultPrefs(){return{fitBaseDuration:10,fitStepMin:10,fitTime:'afternoon',fitStartDate:'',homeHours:6,homeMaxBlocks:1,homeTime:'morning',meHours:5,meTime:'evening',meMinBlock:60,sleepStart:'22:30',wakeUp:'06:30',waterGoal:8};}
 
-function saveAll(){try{localStorage.setItem('ptm3_state',JSON.stringify(appState));localStorage.setItem('ptm3_prefs',JSON.stringify(prefs));localStorage.setItem('ptm3_personal',JSON.stringify(personalData));localStorage.setItem('ptm3_cycle',JSON.stringify(cycleData));localStorage.setItem('ptm3_water',JSON.stringify(waterData));localStorage.setItem('ptm3_weight',JSON.stringify(weightLog));}catch(e){}}
-function loadAll(){try{const f=k=>localStorage.getItem(k);const s=f('ptm3_state'),p=f('ptm3_prefs'),pd=f('ptm3_personal'),cy=f('ptm3_cycle'),wa=f('ptm3_water'),wl=f('ptm3_weight');if(s)appState=JSON.parse(s);if(p)prefs=JSON.parse(p);if(pd)personalData=JSON.parse(pd);if(cy)cycleData=JSON.parse(cy);if(wa)Object.assign(waterData,JSON.parse(wa));if(wl)weightLog=JSON.parse(wl);}catch(e){}}
+// ── DUAL STORAGE: localStorage + IndexedDB ──
+const DB_NAME='MeineWocheDB', DB_VER=1, STORE='data';
+let idb=null;
+
+function openIDB(){
+  return new Promise((res,rej)=>{
+    if(idb){res(idb);return;}
+    const req=indexedDB.open(DB_NAME,DB_VER);
+    req.onupgradeneeded=e=>{e.target.result.createObjectStore(STORE);};
+    req.onsuccess=e=>{idb=e.target.result;res(idb);};
+    req.onerror=()=>rej();
+  });
+}
+function idbSet(key,val){
+  openIDB().then(db=>{
+    const tx=db.transaction(STORE,'readwrite');
+    tx.objectStore(STORE).put(val,key);
+  }).catch(()=>{});
+}
+function idbGet(key){
+  return openIDB().then(db=>new Promise((res,rej)=>{
+    const req=db.transaction(STORE,'readonly').objectStore(STORE).get(key);
+    req.onsuccess=()=>res(req.result);
+    req.onerror=()=>rej();
+  })).catch(()=>null);
+}
+
+function saveAll(){
+  const bundle={appState,prefs,personalData,cycleData,waterData,weightLog,_saved:new Date().toISOString()};
+  // Save to localStorage
+  try{
+    localStorage.setItem('ptm3_state',JSON.stringify(appState));
+    localStorage.setItem('ptm3_prefs',JSON.stringify(prefs));
+    localStorage.setItem('ptm3_personal',JSON.stringify(personalData));
+    localStorage.setItem('ptm3_cycle',JSON.stringify(cycleData));
+    localStorage.setItem('ptm3_water',JSON.stringify(waterData));
+    localStorage.setItem('ptm3_weight',JSON.stringify(weightLog));
+  }catch(e){}
+  // Also save to IndexedDB as backup
+  idbSet('bundle',bundle);
+}
+
+async function loadAll(){
+  // Try localStorage first
+  try{
+    const s=localStorage.getItem('ptm3_state');
+    const p=localStorage.getItem('ptm3_prefs');
+    const pd=localStorage.getItem('ptm3_personal');
+    const cy=localStorage.getItem('ptm3_cycle');
+    const wa=localStorage.getItem('ptm3_water');
+    const wl=localStorage.getItem('ptm3_weight');
+    if(s)appState=JSON.parse(s);
+    if(p)prefs=JSON.parse(p);
+    if(pd)personalData=JSON.parse(pd);
+    if(cy)cycleData=JSON.parse(cy);
+    if(wa)Object.assign(waterData,JSON.parse(wa));
+    if(wl)weightLog=JSON.parse(wl);
+    if(s) return; // localStorage had data, done
+  }catch(e){}
+  // Fallback to IndexedDB
+  try{
+    const bundle=await idbGet('bundle');
+    if(bundle){
+      if(bundle.appState)    appState=bundle.appState;
+      if(bundle.prefs)       prefs=bundle.prefs;
+      if(bundle.personalData)personalData=bundle.personalData;
+      if(bundle.cycleData)   cycleData=bundle.cycleData;
+      if(bundle.waterData)   Object.assign(waterData,bundle.waterData);
+      if(bundle.weightLog)   weightLog=bundle.weightLog;
+      // Restore to localStorage
+      saveAll();
+      console.log('Data restored from IndexedDB');
+    }
+  }catch(e){}
+}
+
+// ── EXPORT / IMPORT ──
+function exportData(){
+  const bundle={appState,prefs,personalData,cycleData,waterData,weightLog,_exported:new Date().toISOString(),_version:'ptm3'};
+  const blob=new Blob([JSON.stringify(bundle,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  const date=new Date().toISOString().slice(0,10);
+  a.href=url; a.download=`meine-woche-backup-${date}.json`;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+  showToast('Backup gespeichert ✓');
+}
+function importData(file){
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const bundle=JSON.parse(e.target.result);
+      if(bundle._version!=='ptm3'){showToast('❌ Falsche Backup-Datei');return;}
+      if(bundle.appState)    appState=bundle.appState;
+      if(bundle.prefs)       prefs=bundle.prefs;
+      if(bundle.personalData)personalData=bundle.personalData;
+      if(bundle.cycleData)   cycleData=bundle.cycleData;
+      if(bundle.waterData)   Object.assign(waterData,bundle.waterData);
+      if(bundle.weightLog)   weightLog=bundle.weightLog;
+      saveAll();
+      renderOverview(); renderWaterBar();
+      const activeTab=document.querySelector('.tab.active').dataset.tab;
+      if(activeTab==='prefs')renderPrefs();
+      showToast('✅ Backup erfolgreich geladen!');
+    }catch(err){showToast('❌ Fehler beim Laden der Datei');}
+  };
+  reader.readAsText(file);
+}
 
 // ═══════════ TRAINING WEEK ═══════════
 function getTrainingWeekNumber(){
@@ -1882,10 +2000,18 @@ document.getElementById('modalOverlay').addEventListener('click',e=>{if(e.target
 // ═══════════ TOAST ═══════════
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);}
 
+// ═══════════ EXPORT / IMPORT BUTTONS ═══════════
+document.getElementById('exportBtn').addEventListener('click', exportData);
+document.getElementById('importBtn').addEventListener('click', ()=>document.getElementById('importFile').click());
+document.getElementById('importFile').addEventListener('change', e=>{ if(e.target.files[0]) importData(e.target.files[0]); e.target.value=''; });
+
 // ═══════════ BOOT ═══════════
-loadAll();
-if(!prefs||!prefs.fitBaseDuration)prefs=defaultPrefs();
-updateWeekLabel();renderWaterBar();renderOverview();
+async function boot(){
+  await loadAll();
+  if(!prefs||!prefs.fitBaseDuration)prefs=defaultPrefs();
+  updateWeekLabel();renderWaterBar();renderOverview();
+}
+boot();
 
 // ═══════════ SERVICE WORKER ═══════════
 if('serviceWorker' in navigator){
